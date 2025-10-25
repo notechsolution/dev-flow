@@ -1,0 +1,57 @@
+{
+  "name": "frontend",
+  "version": "4.0.0",
+  "private": true,
+  "description": "带码农飞的好帮手",
+  "author": "",
+  "scripts": {
+    "dev": "vite",
+    "serve": "vite preview",
+    "build": "vite build",
+    "clean": "rm -rf node_modules target"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.7.2",
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@fortawesome/vue-fontawesome": "^3.0.8",
+    "@vitejs/plugin-vue": "^5.2.3",
+    "axios": "^1.7.4",
+    "bootstrap": "^5.3.3",
+    "core-js": "^3.36.0",
+    "diff2html": "^3.4.51",
+    "echarts": "^5.6.0",
+    "pinia": "^3.0.1",
+    "vite": "^6.2.2",
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.0"
+  },
+  "devDependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
+    "@milkdown/crepe": "^7.6.4",
+    "@milkdown/kit": "^7.6.4",
+    "@milkdown/vue": "^7.6.4",
+    "@primeuix/themes": "^1.0.0",
+    "@types/turndown": "^5.0.5",
+    "@typescript-eslint/eslint-plugin": "^8.19.1",
+    "@typescript-eslint/parser": "^8.19.1",
+    "@vue/eslint-config-typescript": "^14.2.0",
+    "autoprefixer": "^10.4.16",
+    "element-plus": "^2.6.3",
+    "eslint": "^9.0.0",
+    "eslint-plugin-vue": "^9.32.0",
+    "geckodriver": "^4.3.3",
+    "is-html": "^3.1.0",
+    "mavon-editor": "^3.0.1",
+    "node-sass": "^9.0.0",
+    "postcss": "^8.4.38",
+    "sass-embedded": "^1.86.0",
+    "sass-loader": "^14.1.1",
+    "tailwindcss": "^3.4.3",
+    "turndown": "^7.2.0",
+    "typescript": "^5.4.4",
+    "vue-diff": "^1.2.4"
+  },
+  "engines": {
+    "node": ">=20.18.0"
+  }
+}
