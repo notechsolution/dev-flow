@@ -11,12 +11,12 @@ export default defineConfig({
     server: {
         proxy: {
             '/api': {
-                target: 'http://localhost:8098',
+                target: 'http://localhost:8099',
                 changeOrigin: true, // needed for virtual hosted sites
                 ws: true // proxy websockets
             },
             '/oauth2': {
-                target: 'http://localhost:8098',
+                target: 'http://localhost:8099',
                 changeOrigin: true, // needed for virtual hosted sites
                 ws: true // proxy websockets
             }
