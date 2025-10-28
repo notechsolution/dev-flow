@@ -1,9 +1,6 @@
 package com.lz.devflow.controller;
 
-import com.lz.devflow.dto.UserStoryOptimizationRequest;
-import com.lz.devflow.dto.UserStoryOptimizationResponse;
-import com.lz.devflow.dto.TestCaseGenerationRequest;
-import com.lz.devflow.dto.TestCaseGenerationResponse;
+import com.lz.devflow.dto.*;
 import com.lz.devflow.service.AIService;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
@@ -121,6 +118,70 @@ public class AIController {
             ));
         } else {
             return ResponseEntity.ok("No authentication found");
+        }
+    }
+    
+    /**
+     * Generate clarification questions for a requirement
+     * 
+     * @param request the clarification request
+     * @return clarification questions response
+     */
+    @PostMapping("/clarify-requirement")
+    @PreAuthorize("hasAnyRole(T(com.lz.devflow.constant.UserRole).USER.name(), T(com.lz.devflow.constant.UserRole).ADMIN.name(), T(com.lz.devflow.constant.UserRole).OPERATOR.name())")
+    public ResponseEntity<RequirementClarificationResponse> clarifyRequirement(
+            @Valid @RequestBody RequirementClarificationRequest request) {
+        
+        logger.info("Received requirement clarification request");
+        
+        try {
+            RequirementClarificationResponse response = aiService.generateClarificationQuestions(request);
+            
+            if (response.isSuccess()) {
+                logger.info("Requirement clarification questions generated successfully");
+                return ResponseEntity.ok(response);
+            } else {
+                logger.warn("Requirement clarification failed: {}", response.getMessage());
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error processing requirement clarification request", e);
+            RequirementClarificationResponse errorResponse = 
+                RequirementClarificationResponse.error("Internal server error: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+    
+    /**
+     * Optimize requirement based on clarification answers
+     * 
+     * @param request the optimization request with clarification answers
+     * @return optimized requirement response
+     */
+    @PostMapping("/optimize-requirement")
+    @PreAuthorize("hasAnyRole(T(com.lz.devflow.constant.UserRole).USER.name(), T(com.lz.devflow.constant.UserRole).ADMIN.name(), T(com.lz.devflow.constant.UserRole).OPERATOR.name())")
+    public ResponseEntity<RequirementOptimizationResponse> optimizeRequirement(
+            @Valid @RequestBody RequirementOptimizationRequest request) {
+        
+        logger.info("Received requirement optimization request");
+        
+        try {
+            RequirementOptimizationResponse response = aiService.optimizeRequirementWithClarification(request);
+            
+            if (response.isSuccess()) {
+                logger.info("Requirement optimization completed successfully");
+                return ResponseEntity.ok(response);
+            } else {
+                logger.warn("Requirement optimization failed: {}", response.getMessage());
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error processing requirement optimization request", e);
+            RequirementOptimizationResponse errorResponse = 
+                RequirementOptimizationResponse.error("Internal server error: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
 

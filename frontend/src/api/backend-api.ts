@@ -121,6 +121,48 @@ export interface TestCaseGenerationResponse {
     message: string;
 }
 
+export interface ClarificationQuestion {
+    id: string;
+    question: string;
+    category: string;
+    answer?: string;
+}
+
+export interface RequirementClarificationRequest {
+    originalRequirement: string;
+    title?: string;
+    projectContext?: string;
+}
+
+export interface RequirementClarificationResponse {
+    questions: ClarificationQuestion[];
+    success: boolean;
+    message: string;
+}
+
+export interface QuestionAnswer {
+    questionId: string;
+    question: string;
+    answer: string;
+    category: string;
+}
+
+export interface RequirementOptimizationRequest {
+    originalRequirement: string;
+    title?: string;
+    projectContext?: string;
+    clarificationAnswers: QuestionAnswer[];
+}
+
+export interface RequirementOptimizationResponse {
+    optimizedRequirement: string;
+    userStory: string;
+    acceptanceCriteria: string;
+    technicalNotes: string;
+    success: boolean;
+    message: string;
+}
+
 export default {
     logout(): Promise<AxiosResponse<any>> {
         return axiosApi.post('/auth/logout', null, getHeaders());
@@ -133,6 +175,14 @@ export default {
 
     generateTestCases(request: TestCaseGenerationRequest): Promise<AxiosResponse<TestCaseGenerationResponse>> {
         return axiosApi.post('/ai/generate-test-cases', request, getHeaders());
+    },
+    
+    clarifyRequirement(request: RequirementClarificationRequest): Promise<AxiosResponse<RequirementClarificationResponse>> {
+        return axiosApi.post('/ai/clarify-requirement', request, getHeaders());
+    },
+    
+    optimizeRequirement(request: RequirementOptimizationRequest): Promise<AxiosResponse<RequirementOptimizationResponse>> {
+        return axiosApi.post('/ai/optimize-requirement', request, getHeaders());
     }
 }
 

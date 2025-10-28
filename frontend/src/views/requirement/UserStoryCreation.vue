@@ -4,9 +4,8 @@
             <h1>Create User Story</h1>
         </div>
 
-        <!-- Meta Data Section -->
-        <el-card class="meta-section">
-
+        <!-- Meta Data Section - Only show in first step -->
+        <el-card v-if="currentStep === 1" class="meta-section">
             <el-row :gutter="20">
                 <el-col :span="6">
                     <el-form-item label="Project" required>
@@ -79,132 +78,220 @@
             </el-row>
         </el-card>
 
-        <!-- Main Content Section -->
-        <el-card class="main-section" shadow="hover">
-            <el-tabs v-model="activeTab" type="card">
-                <!-- Description Tab -->
-                <el-tab-pane label="Description" name="description">
-                    <div class="description-content">
-                        <el-row :gutter="20">
-                            <!-- Left Side - Input Description -->
-                            <el-col :span="12">
-                                <div class="editor-section">
-                                    <div class="editor-header">
-                                        <h3>Description</h3>
-                                    </div>
-                                    <MilkdownProvider class="min-h-[600px]">
-                                        <MilkdownEditor
-                                            ref="descriptionEditor"
-                                            :content="userStory.description"
-                                            placeholder="Please input User Story Description here..."
-                                            @updated-content="onDescriptionUpdate"
-                                        />
-                                    </MilkdownProvider>
-                                </div>
-                            </el-col>
-
-                            <!-- Right Side - AI Optimization -->
-                            <el-col :span="12">
-                                <div class="editor-section" >
-                                    <div class="editor-header">
-                                        <h3>AI Optimized Description</h3>
-                                        <div>
-                                            <el-button
-                                                type="primary"
-                                                :icon="Tools"
-                                                :loading="optimizing"
-                                                @click="optimizeDescription"
-                                                :disabled="!userStory.description.trim()"
-                                            >
-                                                Optimize By AI
-                                            </el-button>
-                                            <el-button type="success" size="large" @click="saveUserStory" :loading="saving">
-                                                Save User Story
-                                            </el-button>
-                                        </div>
-                                    </div>
-                                    <MilkdownProvider>
-                                        <MilkdownEditor
-                                            ref="optimizedEditor"
-                                            :content="optimizedDescription"
-                                            :readonly="true"
-                                            :enable-copy="true"
-                                            placeholder="AI optimized description will appear here..."
-                                        />
-                                    </MilkdownProvider>
-                                </div>
-                            </el-col>
-                        </el-row>
-                    </div>
-                </el-tab-pane>
-
-                <!-- Test Cases Tab -->
-                <el-tab-pane label="Test Cases" name="testcases">
-                    <div class="testcase-content">
-                        <div class="testcase-header">
-                            <el-button
-                                type="success"
-                                :icon="DataAnalysis"
-                                :loading="generatingTestcases"
-                                @click="generateTestcases"
-                                :disabled="!userStory.description.trim()"
-                            >
-                                Generate by AI
-                            </el-button>
-                        </div>
-                        <div class="testcase-editor">
-                            <MilkdownProvider>
-                                <MilkdownEditor
-                                    ref="testcaseEditor"
-                                    :content="generatedTestcases"
-                                    :readonly="true"
-                                    :enable-copy="true"
-                                    placeholder="Generated test cases will appear here..."
-                                />
-                            </MilkdownProvider>
-                        </div>
-                    </div>
-                </el-tab-pane>
-            </el-tabs>
+        <!-- Step Indicator -->
+        <el-card class="step-indicator">
+            <el-steps :active="currentStep - 1" align-center>
+                <el-step title="需求输入" description="输入原始需求" />
+                <el-step title="需求澄清" description="AI 提问并确认" />
+                <el-step title="需求优化" description="生成优化的需求" />
+            </el-steps>
         </el-card>
 
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-            <el-button size="large" @click="cancel">Cancel</el-button>
-            <el-button type="primary" size="large" @click="saveUserStory" :loading="saving">
-                Save User Story
-            </el-button>
-        </div>
+        <!-- Main Content Section -->
+        <el-card class="main-section" shadow="hover">
+            <!-- Step 1: Requirement Input -->
+            <div v-if="currentStep === 1" class="step-content fullscreen-editor">
+                <div class="editor-header">
+                    <h2>请输入您的需求</h2>
+                </div>
+                <MilkdownProvider class="fullscreen-milkdown">
+                    <MilkdownEditor
+                        ref="requirementEditor"
+                        :content="userStory.originalRequirement"
+                        placeholder="请在这里详细描述您的需求..."
+                        @updated-content="onRequirementUpdate"
+                    />
+                </MilkdownProvider>
+                <div class="step-actions">
+                    <el-button size="large" @click="cancel">取消</el-button>
+                    <el-button 
+                        type="primary" 
+                        size="large" 
+                        @click="goToClarification"
+                        :disabled="!userStory.originalRequirement.trim() || !userStory.title.trim()"
+                    >
+                        下一步：需求澄清
+                    </el-button>
+                </div>
+            </div>
+
+            <!-- Step 2: Requirement Clarification -->
+            <div v-if="currentStep === 2" class="step-content clarification-content">
+                <div class="editor-header">
+                    <h2>需求澄清</h2>
+                    <el-tag v-if="clarificationQuestions.length > 0" type="info">
+                        {{ answeredQuestionsCount }} / {{ clarificationQuestions.length }} 已回答
+                    </el-tag>
+                </div>
+                
+                <div v-if="loadingClarification" class="loading-container">
+                    <el-icon class="is-loading"><Loading /></el-icon>
+                    <p>AI 正在分析您的需求并生成澄清问题...</p>
+                </div>
+                
+                <div v-else-if="clarificationQuestions.length > 0" class="questions-container">
+                    <div 
+                        v-for="(question, index) in clarificationQuestions" 
+                        :key="question.id"
+                        class="question-item"
+                    >
+                        <div class="question-header">
+                            <el-tag :type="getQuestionTagType(question.category)" size="small">
+                                {{ question.category }}
+                            </el-tag>
+                            <span class="question-number">问题 {{ index + 1 }}</span>
+                        </div>
+                        <div class="question-text">
+                            {{ question.question }}
+                        </div>
+                        <el-input
+                            v-model="question.answer"
+                            type="textarea"
+                            :rows="3"
+                            placeholder="请输入您的回答..."
+                            class="answer-input"
+                        />
+                    </div>
+                </div>
+                
+                <div class="step-actions">
+                    <el-button size="large" @click="currentStep = 1">上一步</el-button>
+                    <el-button 
+                        type="primary" 
+                        size="large" 
+                        @click="goToOptimization"
+                        :disabled="!allQuestionsAnswered"
+                        :loading="generatingOptimization"
+                    >
+                        下一步：需求优化
+                    </el-button>
+                </div>
+            </div>
+
+            <!-- Step 3: Requirement Optimization -->
+            <div v-if="currentStep === 3" class="step-content optimization-content">
+                <div class="editor-header">
+                    <h2>优化后的需求</h2>
+                    <div>
+                        <el-button 
+                            type="success" 
+                            size="large" 
+                            @click="saveUserStory" 
+                            :loading="saving"
+                        >
+                            保存 User Story
+                        </el-button>
+                    </div>
+                </div>
+                
+                <div v-if="loadingOptimization" class="loading-container">
+                    <el-icon class="is-loading"><Loading /></el-icon>
+                    <p>AI 正在优化您的需求...</p>
+                </div>
+                
+                <div v-else class="optimization-result">
+                    <el-tabs v-model="optimizationTab" type="card">
+                        <el-tab-pane label="优化后的需求" name="optimized">
+                            <MilkdownProvider>
+                                <MilkdownEditor
+                                    ref="optimizedEditor"
+                                    :content="optimizationResult.optimizedRequirement"
+                                    :readonly="true"
+                                    :enable-copy="true"
+                                    placeholder="优化后的需求将显示在这里..."
+                                />
+                            </MilkdownProvider>
+                        </el-tab-pane>
+                        
+                        <el-tab-pane label="User Story" name="userStory" v-if="optimizationResult.userStory">
+                            <MilkdownProvider>
+                                <MilkdownEditor
+                                    :content="optimizationResult.userStory"
+                                    :readonly="true"
+                                    :enable-copy="true"
+                                />
+                            </MilkdownProvider>
+                        </el-tab-pane>
+                        
+                        <el-tab-pane label="验收标准" name="acceptance" v-if="optimizationResult.acceptanceCriteria">
+                            <MilkdownProvider>
+                                <MilkdownEditor
+                                    :content="optimizationResult.acceptanceCriteria"
+                                    :readonly="true"
+                                    :enable-copy="true"
+                                />
+                            </MilkdownProvider>
+                        </el-tab-pane>
+                        
+                        <el-tab-pane label="技术说明" name="technical" v-if="optimizationResult.technicalNotes">
+                            <MilkdownProvider>
+                                <MilkdownEditor
+                                    :content="optimizationResult.technicalNotes"
+                                    :readonly="true"
+                                    :enable-copy="true"
+                                />
+                            </MilkdownProvider>
+                        </el-tab-pane>
+                    </el-tabs>
+                </div>
+                
+                <div class="step-actions">
+                    <el-button size="large" @click="currentStep = 2">上一步</el-button>
+                    <el-button 
+                        type="success" 
+                        size="large" 
+                        @click="saveUserStory" 
+                        :loading="saving"
+                    >
+                        保存 User Story
+                    </el-button>
+                </div>
+            </div>
+        </el-card>
     </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Tools, DataAnalysis } from '@element-plus/icons-vue'
+import { Loading } from '@element-plus/icons-vue'
 import MilkdownEditor from '@/components/MilkdownEditor.vue'
 import { MilkdownProvider } from "@milkdown/vue"
-import aiApi from '@/api/backend-api'
+import aiApi, { ClarificationQuestion, QuestionAnswer } from '@/api/backend-api'
 
 const router = useRouter()
 
-// Reactive data
-const activeTab = ref('description')
-const optimizing = ref(false)
-const generatingTestcases = ref(false)
+// Step management
+const currentStep = ref(1) // 1: Input, 2: Clarification, 3: Optimization
+
+// Loading states
+const loadingClarification = ref(false)
+const loadingOptimization = ref(false)
+const generatingOptimization = ref(false)
 const saving = ref(false)
 
+// User story data
 const userStory = reactive({
     projectId: '',
     title: '',
     tags: [] as string[],
     ownerId: '',
+    originalRequirement: '',
     description: '',
 })
 
-const optimizedDescription = ref('')
-const generatedTestcases = ref('')
+// Clarification data
+const clarificationQuestions = ref<ClarificationQuestion[]>([])
+
+// Optimization data
+const optimizationTab = ref('optimized')
+const optimizationResult = reactive({
+    optimizedRequirement: '',
+    userStory: '',
+    acceptanceCriteria: '',
+    technicalNotes: '',
+})
 
 // Mock data - replace with actual API calls
 const projects = ref([
@@ -225,98 +312,136 @@ const availableTags = ref([
 ])
 
 // Editor references
-const descriptionEditor = ref()
+const requirementEditor = ref()
 const optimizedEditor = ref()
-const testcaseEditor = ref()
+
+// Computed properties
+const answeredQuestionsCount = computed(() => {
+    return clarificationQuestions.value.filter(q => q.answer && q.answer.trim()).length
+})
+
+const allQuestionsAnswered = computed(() => {
+    return clarificationQuestions.value.length > 0 && 
+           clarificationQuestions.value.every(q => q.answer && q.answer.trim())
+})
 
 // Methods
-const onDescriptionUpdate = (content: string) => {
-    userStory.description = content
+const onRequirementUpdate = (content: string) => {
+    userStory.originalRequirement = content
 }
 
-const optimizeDescription = async () => {
-    if (!userStory.description.trim()) {
-        ElMessage.warning('Please enter a description first')
+const getQuestionTagType = (category: string) => {
+    const tagTypes: Record<string, any> = {
+        'Users & Roles': 'success',
+        'Goals & Outcomes': 'warning',
+        'Business Rules': 'danger',
+        'Data & Interface': 'info',
+        'Non-functional Requirements': '',
+        'General': 'info'
+    }
+    return tagTypes[category] || 'info'
+}
+
+const goToClarification = async () => {
+    if (!userStory.title.trim()) {
+        ElMessage.warning('请输入标题')
         return
     }
-    if (!userStory.title.trim()) {
-        ElMessage.warning('Please enter a title first')
-            return
-        }
+    if (!userStory.originalRequirement.trim()) {
+        ElMessage.warning('请输入需求描述')
+        return
+    }
 
-    optimizing.value = true
+    currentStep.value = 2
+    loadingClarification.value = true
+
     try {
-        // Call the actual AI API
-        const response = await aiApi.optimizeUserStory({
-            description: userStory.description,
+        // Call AI to generate clarification questions
+        const response = await aiApi.clarifyRequirement({
+            originalRequirement: userStory.originalRequirement,
             title: userStory.title,
             projectContext: projects.value.find(p => p.id === userStory.projectId)?.name || '',
-            additionalRequirements: ''
         })
 
         if (response.data.success) {
-            // Format the optimized content            
-            optimizedDescription.value = response.data.optimizedDescription
-            optimizedEditor?.value.updateDefaultValue(optimizedDescription.value)
-            ElMessage.success('Description optimized successfully!')
+            clarificationQuestions.value = response.data.questions
+            ElMessage.success('澄清问题已生成')
         } else {
-            ElMessage.error(response.data.message || 'Failed to optimize description')
+            ElMessage.error(response.data.message || '生成澄清问题失败')
+            currentStep.value = 1
         }
     } catch (error) {
-        ElMessage.error('Failed to optimize description')
-        console.error('Optimization error:', error)
+        ElMessage.error('生成澄清问题失败')
+        console.error('Clarification error:', error)
+        currentStep.value = 1
     } finally {
-        optimizing.value = false
+        loadingClarification.value = false
     }
 }
 
-const generateTestcases = async () => {
-    if (!userStory.description.trim()) {
-        ElMessage.warning('Please enter a description first')
+const goToOptimization = async () => {
+    if (!allQuestionsAnswered.value) {
+        ElMessage.warning('请回答所有问题后再继续')
         return
     }
 
-    generatingTestcases.value = true
+    currentStep.value = 3
+    loadingOptimization.value = true
+    generatingOptimization.value = true
+
     try {
-        // Call the actual AI API
-        const response = await aiApi.generateTestCases({
-            description: userStory.description,
-            optimizedDescription: optimizedDescription.value,
-            projectContext: projects.value.find(p => p.id === userStory.projectId)?.name || ''
+        // Prepare Q&A data
+        const clarificationAnswers: QuestionAnswer[] = clarificationQuestions.value.map(q => ({
+            questionId: q.id,
+            question: q.question,
+            answer: q.answer || '',
+            category: q.category
+        }))
+
+        // Call AI to optimize requirement
+        const response = await aiApi.optimizeRequirement({
+            originalRequirement: userStory.originalRequirement,
+            title: userStory.title,
+            projectContext: projects.value.find(p => p.id === userStory.projectId)?.name || '',
+            clarificationAnswers
         })
 
         if (response.data.success) {
-            // Format the test cases
-            let formattedTestCases = '# Test Cases\n\n'
-            response.data.testCases.forEach((testCase, index) => {
-                formattedTestCases += `${testCase}\n\n`
-            })
+            optimizationResult.optimizedRequirement = response.data.optimizedRequirement
+            optimizationResult.userStory = response.data.userStory
+            optimizationResult.acceptanceCriteria = response.data.acceptanceCriteria
+            optimizationResult.technicalNotes = response.data.technicalNotes
             
-            generatedTestcases.value = formattedTestCases
-            ElMessage.success('Test cases generated successfully!')
+            // Update the description for saving
+            userStory.description = response.data.optimizedRequirement
+            
+            ElMessage.success('需求优化完成')
         } else {
-            ElMessage.error(response.data.message || 'Failed to generate test cases')
+            ElMessage.error(response.data.message || '需求优化失败')
+            currentStep.value = 2
         }
     } catch (error) {
-        ElMessage.error('Failed to generate test cases')
-        console.error('Test case generation error:', error)
+        ElMessage.error('需求优化失败')
+        console.error('Optimization error:', error)
+        currentStep.value = 2
     } finally {
-        generatingTestcases.value = false
+        loadingOptimization.value = false
+        generatingOptimization.value = false
     }
 }
 
 const saveUserStory = async () => {
     // Validation
     if (!userStory.projectId) {
-        ElMessage.warning('Please select a project')
+        ElMessage.warning('请选择项目')
         return
     }
     if (!userStory.title.trim()) {
-        ElMessage.warning('Please enter a title')
+        ElMessage.warning('请输入标题')
         return
     }
     if (!userStory.description.trim()) {
-        ElMessage.warning('Please enter a description')
+        ElMessage.warning('请完成需求优化后再保存')
         return
     }
 
@@ -325,15 +450,15 @@ const saveUserStory = async () => {
         // TODO: Replace with actual API call
         // const response = await userStoryApi.create({
         //   ...userStory,
-        //   optimizedDescription: optimizedDescription.value,
-        //   testcases: generatedTestcases.value
+        //   clarificationQuestions: clarificationQuestions.value,
+        //   optimizationResult: optimizationResult
         // })
 
         await new Promise(resolve => setTimeout(resolve, 1000))
-        ElMessage.success('User story saved successfully!')
+        ElMessage.success('User story 保存成功!')
         router.push('/user-stories')
     } catch (error) {
-        ElMessage.error('Failed to save user story')
+        ElMessage.error('保存失败')
         console.error('Save error:', error)
     } finally {
         saving.value = false
@@ -341,16 +466,16 @@ const saveUserStory = async () => {
 }
 
 const cancel = async () => {
-    const hasChanges = userStory.title || userStory.description || userStory.tags.length > 0
+    const hasChanges = userStory.title || userStory.originalRequirement || userStory.tags.length > 0
 
     if (hasChanges) {
         try {
             await ElMessageBox.confirm(
-                'You have unsaved changes. Are you sure you want to leave?',
-                'Confirm',
+                '您有未保存的更改，确定要离开吗？',
+                '确认',
                 {
-                    confirmButtonText: 'Leave',
-                    cancelButtonText: 'Stay',
+                    confirmButtonText: '离开',
+                    cancelButtonText: '留下',
                     type: 'warning'
                 }
             )
@@ -376,6 +501,7 @@ onMounted(async () => {
     padding: 20px;
     width: 100%;
     margin: 0 auto;
+    max-width: 1600px;
 }
 
 .page-header {
@@ -393,65 +519,130 @@ onMounted(async () => {
     margin-bottom: 20px;
 }
 
-.section-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #303133;
+.step-indicator {
+    margin-bottom: 20px;
 }
 
 .main-section {
     margin-bottom: 20px;
+    min-height: calc(100vh - 300px);
 }
 
-.description-content {
-    height: 100%;
-}
-
-.editor-section {
-    min-height: 500px;
-    height: 100%;
+.step-content {
+    min-height: 600px;
     display: flex;
     flex-direction: column;
+}
+
+.fullscreen-editor {
+    min-height: calc(100vh - 350px);
+}
+
+.fullscreen-milkdown {
+    flex: 1;
+    min-height: 500px;
 }
 
 .editor-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #ebeef5;
-    height: 45px;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #ebeef5;
 }
 
-.editor-header h3 {
+.editor-header h2 {
     margin: 0;
-    font-size: 16px;
+    font-size: 20px;
     font-weight: 600;
     color: #303133;
 }
 
-.testcase-content {
+.step-actions {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #ebeef5;
+    text-align: right;
+}
+
+.step-actions .el-button {
+    margin-left: 10px;
+}
+
+/* Clarification styles */
+.clarification-content {
+    padding: 20px 0;
+}
+
+.loading-container {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    color: #909399;
 }
 
-.testcase-header {
+.loading-container .el-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+.loading-container p {
+    font-size: 16px;
+}
+
+.questions-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.question-item {
+    background: #f5f7fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: all 0.3s;
+}
+
+.question-item:hover {
+    background: #ecf5ff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.question-number {
+    font-size: 14px;
+    color: #909399;
+    font-weight: 500;
+}
+
+.question-text {
+    font-size: 16px;
+    color: #303133;
+    font-weight: 500;
     margin-bottom: 15px;
-    text-align: right;
+    line-height: 1.6;
 }
 
-.testcase-editor {
-    flex: 1;
+.answer-input {
+    margin-top: 10px;
 }
 
-.action-buttons {
-    text-align: right;
-    margin-top: 20px;
+/* Optimization styles */
+.optimization-content {
+    padding: 20px 0;
 }
 
-.action-buttons .el-button {
-    margin-left: 10px;
+.optimization-result {
+    min-height: 500px;
 }
 
 :deep(.el-card__body) {
@@ -459,7 +650,8 @@ onMounted(async () => {
 }
 
 :deep(.el-tabs__content) {
-    padding: 0;
+    padding: 20px 0;
+    min-height: 400px;
 }
 
 :deep(.el-form-item__label) {
@@ -471,13 +663,13 @@ onMounted(async () => {
     cursor: pointer;
 }
 
-@media (max-width: 768px) {
-    .description-content .el-row {
-        height: auto !important;
-    }
+:deep(.el-steps) {
+    padding: 0 50px;
+}
 
-    .description-content .el-col {
-        margin-bottom: 20px;
+@media (max-width: 768px) {
+    .user-story-creation {
+        padding: 10px;
     }
 
     .editor-header {
@@ -486,8 +678,16 @@ onMounted(async () => {
         gap: 10px;
     }
 
-    .testcase-header {
-        text-align: left;
+    .questions-container {
+        max-width: 100%;
+    }
+
+    .question-item {
+        padding: 15px;
+    }
+
+    :deep(.el-steps) {
+        padding: 0 10px;
     }
 }
 </style>

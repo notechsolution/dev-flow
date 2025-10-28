@@ -2,10 +2,7 @@ package com.lz.devflow.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lz.devflow.dto.UserStoryOptimizationRequest;
-import com.lz.devflow.dto.UserStoryOptimizationResponse;
-import com.lz.devflow.dto.TestCaseGenerationRequest;
-import com.lz.devflow.dto.TestCaseGenerationResponse;
+import com.lz.devflow.dto.*;
 import com.lz.devflow.service.AIService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +34,12 @@ public class DifyAIServiceImpl implements AIService {
 
     @Value("${dify.api.key.test-case-generation}")
     private String difyApiKeyTestCaseGeneration;
+    
+    @Value("${dify.api.key.requirement-clarification:}")
+    private String difyApiKeyRequirementClarification;
+    
+    @Value("${dify.api.key.requirement-optimization:}")
+    private String difyApiKeyRequirementOptimization;
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -279,5 +282,225 @@ public class DifyAIServiceImpl implements AIService {
         }
         
         return testCases;
+    }
+    
+    @Override
+    public RequirementClarificationResponse generateClarificationQuestions(RequirementClarificationRequest request) {
+        try {
+            logger.info("Generating clarification questions for requirement");
+
+            // If no specific Dify API key is configured, generate questions using a simple rule-based approach
+            if (difyApiKeyRequirementClarification == null || difyApiKeyRequirementClarification.trim().isEmpty()) {
+                return generateDefaultClarificationQuestions(request);
+            }
+
+            // Prepare request body for Dify API
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("inputs", createClarificationInputs(request));
+            requestBody.put("response_mode", "blocking");
+            requestBody.put("user", "dev-flow-user");
+
+            // Make API call to Dify
+            String response = callDifyAPI(requestBody, difyApiKeyRequirementClarification);
+            
+            // Parse response and extract clarification questions
+            return parseClarificationResponse(response);
+
+        } catch (Exception e) {
+            logger.error("Error generating clarification questions: ", e);
+            // Fallback to default questions
+            return generateDefaultClarificationQuestions(request);
+        }
+    }
+    
+    @Override
+    public RequirementOptimizationResponse optimizeRequirementWithClarification(RequirementOptimizationRequest request) {
+        try {
+            logger.info("Optimizing requirement with clarification answers");
+
+            // If no specific Dify API key is configured, use the user story optimization API
+            String apiKey = (difyApiKeyRequirementOptimization != null && !difyApiKeyRequirementOptimization.trim().isEmpty()) 
+                ? difyApiKeyRequirementOptimization 
+                : difyApiKeyUserStoryOptimization;
+
+            // Prepare request body for Dify API
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("inputs", createOptimizationInputs(request));
+            requestBody.put("response_mode", "blocking");
+            requestBody.put("user", "dev-flow-user");
+
+            // Make API call to Dify
+            String response = callDifyAPI(requestBody, apiKey);
+            
+            // Parse response and extract optimized requirement
+            return parseOptimizationResponse(response);
+
+        } catch (Exception e) {
+            logger.error("Error optimizing requirement: ", e);
+            return RequirementOptimizationResponse.error("Failed to optimize requirement: " + e.getMessage());
+        }
+    }
+    
+    private Map<String, Object> createClarificationInputs(RequirementClarificationRequest request) {
+        Map<String, Object> inputs = new HashMap<>();
+        
+        inputs.put("requirement", request.getOriginalRequirement());
+        if (request.getTitle() != null && !request.getTitle().trim().isEmpty()) {
+            inputs.put("title", request.getTitle());
+        }
+        if (request.getProjectContext() != null && !request.getProjectContext().trim().isEmpty()) {
+            inputs.put("project_context", request.getProjectContext());
+        }
+        
+        return inputs;
+    }
+    
+    private Map<String, Object> createOptimizationInputs(RequirementOptimizationRequest request) {
+        Map<String, Object> inputs = new HashMap<>();
+        
+        inputs.put("original_requirement", request.getOriginalRequirement());
+        if (request.getTitle() != null && !request.getTitle().trim().isEmpty()) {
+            inputs.put("title", request.getTitle());
+        }
+        if (request.getProjectContext() != null && !request.getProjectContext().trim().isEmpty()) {
+            inputs.put("project_context", request.getProjectContext());
+        }
+        
+        // Format clarification Q&A
+        StringBuilder qaBuilder = new StringBuilder();
+        for (RequirementOptimizationRequest.QuestionAnswer qa : request.getClarificationAnswers()) {
+            qaBuilder.append("Q: ").append(qa.getQuestion()).append("\n");
+            qaBuilder.append("A: ").append(qa.getAnswer()).append("\n\n");
+        }
+        inputs.put("clarification_qa", qaBuilder.toString());
+        
+        return inputs;
+    }
+    
+    private RequirementClarificationResponse generateDefaultClarificationQuestions(RequirementClarificationRequest request) {
+        logger.info("Generating default clarification questions");
+        
+        List<RequirementClarificationResponse.ClarificationQuestion> questions = new ArrayList<>();
+        
+        questions.add(new RequirementClarificationResponse.ClarificationQuestion(
+            "q1", 
+            "What are the specific user roles involved in this requirement?", 
+            "Users & Roles"
+        ));
+        
+        questions.add(new RequirementClarificationResponse.ClarificationQuestion(
+            "q2", 
+            "What are the main user goals or outcomes expected from this feature?", 
+            "Goals & Outcomes"
+        ));
+        
+        questions.add(new RequirementClarificationResponse.ClarificationQuestion(
+            "q3", 
+            "Are there any specific business rules or constraints that must be followed?", 
+            "Business Rules"
+        ));
+        
+        questions.add(new RequirementClarificationResponse.ClarificationQuestion(
+            "q4", 
+            "What are the expected inputs and outputs for this feature?", 
+            "Data & Interface"
+        ));
+        
+        questions.add(new RequirementClarificationResponse.ClarificationQuestion(
+            "q5", 
+            "Are there any performance or scalability requirements?", 
+            "Non-functional Requirements"
+        ));
+        
+        return RequirementClarificationResponse.success(questions);
+    }
+    
+    private RequirementClarificationResponse parseClarificationResponse(String response) throws Exception {
+        JsonNode rootNode = objectMapper.readTree(response);
+        
+        JsonNode dataNode = rootNode.get("data");
+        if (dataNode == null) {
+            throw new RuntimeException("Invalid response format from Dify API");
+        }
+        
+        JsonNode outputsNode = dataNode.get("outputs");
+        if (outputsNode == null) {
+            throw new RuntimeException("No outputs in Dify API response");
+        }
+        
+        String fullResponse = outputsNode.get("questions") != null ? outputsNode.get("questions").asText() : "";
+        
+        // Parse questions from the response
+        List<RequirementClarificationResponse.ClarificationQuestion> questions = parseQuestions(fullResponse);
+        
+        return RequirementClarificationResponse.success(questions);
+    }
+    
+    private RequirementOptimizationResponse parseOptimizationResponse(String response) throws Exception {
+        JsonNode rootNode = objectMapper.readTree(response);
+        
+        JsonNode dataNode = rootNode.get("data");
+        if (dataNode == null) {
+            throw new RuntimeException("Invalid response format from Dify API");
+        }
+        
+        JsonNode outputsNode = dataNode.get("outputs");
+        if (outputsNode == null) {
+            throw new RuntimeException("No outputs in Dify API response");
+        }
+        
+        String optimizedRequirement = outputsNode.get("optimized_requirement") != null 
+            ? outputsNode.get("optimized_requirement").asText() : "";
+        String userStory = outputsNode.get("user_story") != null 
+            ? outputsNode.get("user_story").asText() : "";
+        String acceptanceCriteria = outputsNode.get("acceptance_criteria") != null 
+            ? outputsNode.get("acceptance_criteria").asText() : "";
+        String technicalNotes = outputsNode.get("technical_notes") != null 
+            ? outputsNode.get("technical_notes").asText() : "";
+        
+        // If structured fields are not available, use the full response
+        if (optimizedRequirement.isEmpty()) {
+            String fullText = outputsNode.get("text") != null ? outputsNode.get("text").asText() : "";
+            if (!fullText.isEmpty()) {
+                optimizedRequirement = fullText;
+            }
+        }
+        
+        return RequirementOptimizationResponse.success(optimizedRequirement, userStory, acceptanceCriteria, technicalNotes);
+    }
+    
+    private List<RequirementClarificationResponse.ClarificationQuestion> parseQuestions(String text) {
+        List<RequirementClarificationResponse.ClarificationQuestion> questions = new ArrayList<>();
+        
+        if (text == null || text.isEmpty()) {
+            return questions;
+        }
+        
+        // Pattern to match questions (numbered or with question marks)
+        String[] lines = text.split("\\n");
+        int questionId = 1;
+        String currentCategory = "General";
+        
+        for (String line : lines) {
+            line = line.trim();
+            
+            // Check if line is a category header (e.g., "## Category Name")
+            if (line.matches("^#+\\s+.*")) {
+                currentCategory = line.replaceAll("^#+\\s+", "");
+                continue;
+            }
+            
+            // Check if line is a question (starts with number or contains ?)
+            if (line.matches("^\\d+[.)].+\\?.*") || (line.contains("?") && line.length() > 10)) {
+                String questionText = line.replaceAll("^\\d+[.)\\s]+", "");
+                questions.add(new RequirementClarificationResponse.ClarificationQuestion(
+                    "q" + questionId++,
+                    questionText,
+                    currentCategory
+                ));
+            }
+        }
+        
+        return questions;
     }
 }

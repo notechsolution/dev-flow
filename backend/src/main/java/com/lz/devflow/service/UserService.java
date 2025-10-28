@@ -83,7 +83,7 @@ public class UserService {
 //    }
 
     public void updateUser(String userId, UserDTO userDTO) {
-        User user = userRepository.findById(userId);
+        User user = userRepository.findById(userId).get();
         User currentUser = findCurrentLoginUser();
         if (Objects.nonNull(user)) {
             if (currentUser.getRole().equals(UserRole.ADMIN)) {
