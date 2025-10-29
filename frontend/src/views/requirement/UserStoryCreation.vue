@@ -479,7 +479,7 @@ const saveUserStory = async () => {
         
         if (response.data.success) {
             ElMessage.success('User Story 保存成功!')
-            router.push('/user-stories')
+            router.push('/dashboard')
         } else {
             ElMessage.error('保存失败')
         }

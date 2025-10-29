@@ -1,169 +1,3 @@
-<script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Refresh } from '@element-plus/icons-vue'
-import aiApi, { UserStoryResponse } from '@/api/backend-api'
-
-const router = useRouter()
-
-// State
-const loading = ref(false)
-const userStories = ref<UserStoryResponse[]>([])
-
-const filters = reactive({
-    projectId: '',
-    status: '',
-    ownerId: ''
-})
-
-const pagination = reactive({
-    page: 1,
-    pageSize: 20,
-    total: 0
-})
-
-// Mock data - replace with actual API calls
-const projects = ref([
-    { id: '1', name: 'Project Alpha' },
-    { id: '2', name: 'Project Beta' },
-    { id: '3', name: 'Project Gamma' }
-])
-
-const users = ref([
-    { id: '1', username: 'john.doe' },
-    { id: '2', username: 'jane.smith' },
-    { id: '3', username: 'bob.wilson' }
-])
-
-const statusOptions = [
-    { label: '待办', value: 'BACKLOG' },
-    { label: '进行中', value: 'IN_PROGRESS' },
-    { label: '已完成', value: 'DONE' },
-    { label: '已取消', value: 'CANCELLED' }
-]
-
-// Methods
-const loadUserStories = async () => {
-    loading.value = true
-    try {
-        const params: any = {}
-        if (filters.projectId) params.projectId = filters.projectId
-        if (filters.status) params.status = filters.status
-        if (filters.ownerId) params.ownerId = filters.ownerId
-
-        const response = await aiApi.getUserStories(params)
-        if (response.data.success) {
-            userStories.value = response.data.data
-            pagination.total = response.data.total
-        } else {
-            ElMessage.error('加载 User Stories 失败')
-        }
-    } catch (error: any) {
-        ElMessage.error(error.response?.data?.message || '加载 User Stories 失败')
-        console.error('Load error:', error)
-    } finally {
-        loading.value = false
-    }
-}
-
-const resetFilters = () => {
-    filters.projectId = ''
-    filters.status = ''
-    filters.ownerId = ''
-    loadUserStories()
-}
-
-const createUserStory = () => {
-    router.push('/requirement/UserStoryCreation')
-}
-
-const viewUserStory = (row: UserStoryResponse) => {
-    router.push(`/requirement/UserStoryDetail/${row.id}`)
-}
-
-const editUserStory = (row: UserStoryResponse) => {
-    router.push(`/requirement/UserStoryEdit/${row.id}`)
-}
-
-const deleteUserStory = async (row: UserStoryResponse) => {
-    try {
-        await ElMessageBox.confirm(
-            `确定要删除 User Story "${row.title}" 吗？`,
-            '确认删除',
-            {
-                confirmButtonText: '删除',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }
-        )
-
-        await aiApi.deleteUserStory(row.id)
-        ElMessage.success('删除成功')
-        loadUserStories()
-    } catch (error: any) {
-        if (error !== 'cancel') {
-            ElMessage.error(error.response?.data?.message || '删除失败')
-            console.error('Delete error:', error)
-        }
-    }
-}
-
-// Helper methods
-const getProjectName = (projectId: string) => {
-    if (!projectId) return '-'
-    return projects.value.find(p => p.id === projectId)?.name || projectId
-}
-
-const getUserName = (userId: string) => {
-    return users.value.find(u => u.id === userId)?.username || userId
-}
-
-const getStatusType = (status: string) => {
-    const types: Record<string, any> = {
-        'BACKLOG': 'info',
-        'IN_PROGRESS': 'warning',
-        'DONE': 'success',
-        'CANCELLED': 'danger'
-    }
-    return types[status] || 'info'
-}
-
-const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-        'BACKLOG': '待办',
-        'IN_PROGRESS': '进行中',
-        'DONE': '已完成',
-        'CANCELLED': '已取消'
-    }
-    return labels[status] || status
-}
-
-const getPriorityType = (priority: string) => {
-    const types: Record<string, any> = {
-        'HIGH': 'danger',
-        'MEDIUM': 'warning',
-        'LOW': 'info'
-    }
-    return types[priority] || 'info'
-}
-
-const formatDate = (date: string) => {
-    return new Date(date).toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-    })
-}
-
-// Initialize
-onMounted(() => {
-    loadUserStories()
-})
-</script>
-
 <template>
     <div class="user-story-list">
         <div class="page-header">
@@ -339,6 +173,172 @@ onMounted(() => {
         </el-card>
     </div>
 </template>
+
+<script lang="ts" setup>
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, Search, Refresh } from '@element-plus/icons-vue'
+import aiApi, { UserStoryResponse } from '@/api/backend-api'
+
+const router = useRouter()
+
+// State
+const loading = ref(false)
+const userStories = ref<UserStoryResponse[]>([])
+
+const filters = reactive({
+    projectId: '',
+    status: '',
+    ownerId: ''
+})
+
+const pagination = reactive({
+    page: 1,
+    pageSize: 20,
+    total: 0
+})
+
+// Mock data - replace with actual API calls
+const projects = ref([
+    { id: '1', name: 'Project Alpha' },
+    { id: '2', name: 'Project Beta' },
+    { id: '3', name: 'Project Gamma' }
+])
+
+const users = ref([
+    { id: '1', username: 'john.doe' },
+    { id: '2', username: 'jane.smith' },
+    { id: '3', username: 'bob.wilson' }
+])
+
+const statusOptions = [
+    { label: '待办', value: 'BACKLOG' },
+    { label: '进行中', value: 'IN_PROGRESS' },
+    { label: '已完成', value: 'DONE' },
+    { label: '已取消', value: 'CANCELLED' }
+]
+
+// Methods
+const loadUserStories = async () => {
+    loading.value = true
+    try {
+        const params: any = {}
+        if (filters.projectId) params.projectId = filters.projectId
+        if (filters.status) params.status = filters.status
+        if (filters.ownerId) params.ownerId = filters.ownerId
+
+        const response = await aiApi.getUserStories(params)
+        if (response.data.success) {
+            userStories.value = response.data.data
+            pagination.total = response.data.total
+        } else {
+            ElMessage.error('加载 User Stories 失败')
+        }
+    } catch (error: any) {
+        ElMessage.error(error.response?.data?.message || '加载 User Stories 失败')
+        console.error('Load error:', error)
+    } finally {
+        loading.value = false
+    }
+}
+
+const resetFilters = () => {
+    filters.projectId = ''
+    filters.status = ''
+    filters.ownerId = ''
+    loadUserStories()
+}
+
+const createUserStory = () => {
+    router.push('/requirement/UserStoryCreation')
+}
+
+const viewUserStory = (row: UserStoryResponse) => {
+    router.push(`/requirement/UserStoryDetail/${row.id}`)
+}
+
+const editUserStory = (row: UserStoryResponse) => {
+    router.push(`/requirement/UserStoryEdit/${row.id}`)
+}
+
+const deleteUserStory = async (row: UserStoryResponse) => {
+    try {
+        await ElMessageBox.confirm(
+            `确定要删除 User Story "${row.title}" 吗？`,
+            '确认删除',
+            {
+                confirmButtonText: '删除',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }
+        )
+
+        await aiApi.deleteUserStory(row.id)
+        ElMessage.success('删除成功')
+        loadUserStories()
+    } catch (error: any) {
+        if (error !== 'cancel') {
+            ElMessage.error(error.response?.data?.message || '删除失败')
+            console.error('Delete error:', error)
+        }
+    }
+}
+
+// Helper methods
+const getProjectName = (projectId: string) => {
+    if (!projectId) return '-'
+    return projects.value.find(p => p.id === projectId)?.name || projectId
+}
+
+const getUserName = (userId: string) => {
+    return users.value.find(u => u.id === userId)?.username || userId
+}
+
+const getStatusType = (status: string) => {
+    const types: Record<string, any> = {
+        'BACKLOG': 'info',
+        'IN_PROGRESS': 'warning',
+        'DONE': 'success',
+        'CANCELLED': 'danger'
+    }
+    return types[status] || 'info'
+}
+
+const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+        'BACKLOG': '待办',
+        'IN_PROGRESS': '进行中',
+        'DONE': '已完成',
+        'CANCELLED': '已取消'
+    }
+    return labels[status] || status
+}
+
+const getPriorityType = (priority: string) => {
+    const types: Record<string, any> = {
+        'HIGH': 'danger',
+        'MEDIUM': 'warning',
+        'LOW': 'info'
+    }
+    return types[priority] || 'info'
+}
+
+const formatDate = (date: string) => {
+    return new Date(date).toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    })
+}
+
+// Initialize
+onMounted(() => {
+    loadUserStories()
+})
+</script>
 
 <style scoped>
 .user-story-list {

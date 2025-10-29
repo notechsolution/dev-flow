@@ -26,10 +26,18 @@ const routes = [
                 component: () => import('@/views/requirement/UserStoryCreation.vue')
             },
             {
+                path: '/requirement/UserStoryDetail/:id',
+                component: () => import('@/views/requirement/UserStoryDetail.vue')
+            },
+            {
+                path: '/requirement/UserStoryEdit/:id',
+                component: () => import('@/views/requirement/UserStoryCreation.vue')
+            },
+            {
                 path: "/dashboard",
                 component: () => import('@/views/Dashboard.vue')
             }
-            ]
+        ]
     },
     // otherwise redirect to home
     {path: '/:pathMatch(.*)*', redirect: '/'}
