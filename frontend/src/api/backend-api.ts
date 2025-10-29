@@ -257,6 +257,75 @@ export interface UserDetailResponse {
     data: UserManagementResponse;
 }
 
+// Project Management interfaces
+export interface GitRepositoryDTO {
+    type?: string; // GITHUB, GITLAB, BITBUCKET, AZURE_DEVOPS
+    baseUrl?: string;
+    repositoryIds?: string[];
+    accessToken?: string;
+}
+
+export interface ProjectManagementSystemDTO {
+    type?: string; // JIRA, AZURE_DEVOPS, GITHUB_ISSUES, TRELLO
+    systemId?: string;
+    baseUrl?: string;
+    accessToken?: string;
+}
+
+export interface CreateProjectRequest {
+    name: string;
+    description?: string;
+    adminIds?: string[];
+    memberIds?: string[];
+    gitRepository?: GitRepositoryDTO;
+    projectManagementSystem?: ProjectManagementSystemDTO;
+}
+
+export interface UpdateProjectRequest {
+    name?: string;
+    description?: string;
+    status?: string;
+    adminIds?: string[];
+    memberIds?: string[];
+    gitRepository?: GitRepositoryDTO;
+    projectManagementSystem?: ProjectManagementSystemDTO;
+}
+
+export interface ProjectResponse {
+    id: string;
+    name: string;
+    description?: string;
+    ownerId: string;
+    status: string;
+    adminIds?: string[];
+    memberIds?: string[];
+    gitRepository?: {
+        type?: string;
+        baseUrl?: string;
+        repositoryIds?: string[];
+        // accessToken is not included in response for security
+    };
+    projectManagementSystem?: {
+        type?: string;
+        systemId?: string;
+        baseUrl?: string;
+        // accessToken is not included in response for security
+    };
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface ProjectListResponse {
+    success: boolean;
+    data: ProjectResponse[];
+    total: number;
+}
+
+export interface ProjectDetailResponse {
+    success: boolean;
+    data: ProjectResponse;
+}
+
 export default {
     logout(): Promise<AxiosResponse<any>> {
         return axiosApi.post('/auth/logout', null, getHeaders());
@@ -323,6 +392,27 @@ export default {
     
     deleteUser(id: string): Promise<AxiosResponse<{ success: boolean; message: string }>> {
         return axiosApi.delete(`/users/${id}`, getHeaders());
+    },
+    
+    // Project Management API methods
+    createProject(request: CreateProjectRequest): Promise<AxiosResponse<ProjectDetailResponse>> {
+        return axiosApi.post('/projects', request, getHeaders());
+    },
+    
+    getProject(id: string): Promise<AxiosResponse<ProjectDetailResponse>> {
+        return axiosApi.get(`/projects/${id}`, getHeaders());
+    },
+    
+    getProjects(params?: { name?: string; status?: string }): Promise<AxiosResponse<ProjectListResponse>> {
+        return axiosApi.get('/projects', { ...getHeaders(), params });
+    },
+    
+    updateProject(id: string, request: UpdateProjectRequest): Promise<AxiosResponse<ProjectDetailResponse>> {
+        return axiosApi.put(`/projects/${id}`, request, getHeaders());
+    },
+    
+    deleteProject(id: string): Promise<AxiosResponse<{ success: boolean; message: string }>> {
+        return axiosApi.delete(`/projects/${id}`, getHeaders());
     }
 }
 

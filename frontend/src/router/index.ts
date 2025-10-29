@@ -40,6 +40,10 @@ const routes = [
             {
                 path: "/users",
                 component: () => import('@/views/user/UserManagement.vue')
+            },
+            {
+                path: "/projects",
+                component: () => import('@/views/ProjectManagement.vue')
             }
         ]
     },

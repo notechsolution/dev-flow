@@ -1,55 +1,31 @@
-package com.lz.devflow.entity;
-
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+package com.lz.devflow.dto;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Project entity
+ * DTO for project API responses
+ * Masks sensitive information like access tokens
  */
-@Document(collection = "projects")
-public class Project {
+public class ProjectResponse {
     
-    @Id
     private String id;
-    
     private String name;
-    
     private String description;
-    
     private String ownerId;
-    
-    private List<String> adminIds; // Project admins
-    
-    private List<String> memberIds; // Project members
-    
-    // Git Repository Information
-    private GitRepository gitRepository;
-    
-    // Project Management System Information
-    private ProjectManagementSystem projectManagementSystem;
-    
-    private String status; // ACTIVE, ARCHIVED, DELETED
-    
-    private String createdBy;
-    
+    private String status;
+    private List<String> adminIds;
+    private List<String> memberIds;
+    private GitRepositoryDTO gitRepository;
+    private ProjectManagementSystemDTO projectManagementSystem;
     private LocalDateTime createdAt;
-    
-    private String updatedBy;
-    
     private LocalDateTime updatedAt;
     
-    // Nested class for Git Repository
-    public static class GitRepository {
-        private String type; // GITHUB, GITLAB, BITBUCKET, AZURE_DEVOPS
+    public static class GitRepositoryDTO {
+        private String type;
         private String baseUrl;
-        private List<String> repositoryIds; // List of repository IDs/names
-        private String accessToken;
-        
-        public GitRepository() {
-        }
+        private List<String> repositoryIds;
+        // accessToken is masked in responses
         
         public String getType() {
             return type;
@@ -74,25 +50,13 @@ public class Project {
         public void setRepositoryIds(List<String> repositoryIds) {
             this.repositoryIds = repositoryIds;
         }
-        
-        public String getAccessToken() {
-            return accessToken;
-        }
-        
-        public void setAccessToken(String accessToken) {
-            this.accessToken = accessToken;
-        }
     }
     
-    // Nested class for Project Management System
-    public static class ProjectManagementSystem {
-        private String type; // JIRA, AZURE_DEVOPS, GITHUB_ISSUES, TRELLO
-        private String systemId; // Project ID in the PM system
+    public static class ProjectManagementSystemDTO {
+        private String type;
+        private String systemId;
         private String baseUrl;
-        private String accessToken;
-        
-        public ProjectManagementSystem() {
-        }
+        // accessToken is masked in responses
         
         public String getType() {
             return type;
@@ -117,18 +81,6 @@ public class Project {
         public void setBaseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
         }
-        
-        public String getAccessToken() {
-            return accessToken;
-        }
-        
-        public void setAccessToken(String accessToken) {
-            this.accessToken = accessToken;
-        }
-    }
-    
-    // Constructors
-    public Project() {
     }
     
     // Getters and Setters
@@ -164,6 +116,14 @@ public class Project {
         this.ownerId = ownerId;
     }
     
+    public String getStatus() {
+        return status;
+    }
+    
+    public void setStatus(String status) {
+        this.status = status;
+    }
+    
     public List<String> getAdminIds() {
         return adminIds;
     }
@@ -180,36 +140,20 @@ public class Project {
         this.memberIds = memberIds;
     }
     
-    public GitRepository getGitRepository() {
+    public GitRepositoryDTO getGitRepository() {
         return gitRepository;
     }
     
-    public void setGitRepository(GitRepository gitRepository) {
+    public void setGitRepository(GitRepositoryDTO gitRepository) {
         this.gitRepository = gitRepository;
     }
     
-    public ProjectManagementSystem getProjectManagementSystem() {
+    public ProjectManagementSystemDTO getProjectManagementSystem() {
         return projectManagementSystem;
     }
     
-    public void setProjectManagementSystem(ProjectManagementSystem projectManagementSystem) {
+    public void setProjectManagementSystem(ProjectManagementSystemDTO projectManagementSystem) {
         this.projectManagementSystem = projectManagementSystem;
-    }
-    
-    public String getStatus() {
-        return status;
-    }
-    
-    public void setStatus(String status) {
-        this.status = status;
-    }
-    
-    public String getCreatedBy() {
-        return createdBy;
-    }
-    
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
     }
     
     public LocalDateTime getCreatedAt() {
@@ -218,14 +162,6 @@ public class Project {
     
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
-    }
-    
-    public String getUpdatedBy() {
-        return updatedBy;
-    }
-    
-    public void setUpdatedBy(String updatedBy) {
-        this.updatedBy = updatedBy;
     }
     
     public LocalDateTime getUpdatedAt() {
