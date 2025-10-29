@@ -126,7 +126,7 @@
                 
                 <div v-if="loadingClarification" class="loading-container">
                     <el-icon class="is-loading"><Loading /></el-icon>
-                    <p>AI 正在分析您的需求并生成澄清问题...</p>
+                    <p>AI 正在分析您的需求并生成需要澄清的问题...</p>
                 </div>
                 
                 <div v-else-if="clarificationQuestions.length > 0" class="questions-container">
@@ -279,6 +279,8 @@ const userStory = reactive({
     ownerId: '',
     originalRequirement: '',
     description: '',
+    status: 'BACKLOG',
+    priority: 'MEDIUM'
 })
 
 // Clarification data
@@ -353,8 +355,15 @@ const goToClarification = async () => {
     }
 
     currentStep.value = 2
-    loadingClarification.value = true
 
+     // If clarification questions already exist, skip AI generation
+    if (clarificationQuestions.value.length > 0) {
+        ElMessage.info('已有澄清问题，继续填写')
+        return
+    }
+
+    loadingClarification.value = true
+    
     try {
         // Call AI to generate clarification questions
         const response = await aiApi.clarifyRequirement({
@@ -440,25 +449,42 @@ const saveUserStory = async () => {
         ElMessage.warning('请输入标题')
         return
     }
-    if (!userStory.description.trim()) {
+    if (!optimizationResult.optimizedRequirement) {
         ElMessage.warning('请完成需求优化后再保存')
         return
     }
 
     saving.value = true
     try {
-        // TODO: Replace with actual API call
-        // const response = await userStoryApi.create({
-        //   ...userStory,
-        //   clarificationQuestions: clarificationQuestions.value,
-        //   optimizationResult: optimizationResult
-        // })
+        // Build the request with all data
+        const request = {
+            title: userStory.title,
+            projectId: userStory.projectId,
+            originalRequirement: userStory.originalRequirement,
+            clarificationQAs: clarificationQuestions.value.map(q => ({
+                questionId: q.id,
+                question: q.question,
+                answer: q.answer || '',
+                category: q.category
+            })),
+            optimizedRequirement: optimizationResult.optimizedRequirement,
+            userStory: optimizationResult.userStory,
+            acceptanceCriteria: optimizationResult.acceptanceCriteria,
+            technicalNotes: optimizationResult.technicalNotes,
+            status: userStory.status || 'BACKLOG',
+            priority: userStory.priority
+        }
 
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        ElMessage.success('User story 保存成功!')
-        router.push('/user-stories')
-    } catch (error) {
-        ElMessage.error('保存失败')
+        const response = await aiApi.createUserStory(request)
+        
+        if (response.data.success) {
+            ElMessage.success('User Story 保存成功!')
+            router.push('/user-stories')
+        } else {
+            ElMessage.error('保存失败')
+        }
+    } catch (error: any) {
+        ElMessage.error(error.response?.data?.message || '保存失败')
         console.error('Save error:', error)
     } finally {
         saving.value = false

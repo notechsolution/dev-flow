@@ -163,6 +163,60 @@ export interface RequirementOptimizationResponse {
     message: string;
 }
 
+// User Story CRUD interfaces
+export interface CreateUserStoryRequest {
+    title: string;
+    projectId?: string;
+    originalRequirement: string;
+    clarificationQAs?: Array<{
+        questionId: string;
+        question: string;
+        answer: string;
+        category: string;
+    }>;
+    optimizedRequirement?: string;
+    userStory?: string;
+    acceptanceCriteria?: string;
+    technicalNotes?: string;
+    status?: string;
+    priority?: string;
+}
+
+export interface UserStoryResponse {
+    id: string;
+    title: string;
+    projectId?: string;
+    originalRequirement: string;
+    clarificationQAs?: Array<{
+        questionId: string;
+        question: string;
+        answer: string;
+        category: string;
+    }>;
+    optimizedRequirement?: string;
+    userStory?: string;
+    acceptanceCriteria?: string;
+    technicalNotes?: string;
+    status: string;
+    priority?: string;
+    ownerId: string;
+    createdBy: string;
+    createdAt: string;
+    updatedBy: string;
+    updatedAt: string;
+}
+
+export interface UserStoryListResponse {
+    success: boolean;
+    data: UserStoryResponse[];
+    total: number;
+}
+
+export interface UserStoryDetailResponse {
+    success: boolean;
+    data: UserStoryResponse;
+}
+
 export default {
     logout(): Promise<AxiosResponse<any>> {
         return axiosApi.post('/auth/logout', null, getHeaders());
@@ -183,6 +237,31 @@ export default {
     
     optimizeRequirement(request: RequirementOptimizationRequest): Promise<AxiosResponse<RequirementOptimizationResponse>> {
         return axiosApi.post('/ai/optimize-requirement', request, getHeaders());
+    },
+    
+    // User Story CRUD API methods
+    createUserStory(request: CreateUserStoryRequest): Promise<AxiosResponse<UserStoryDetailResponse>> {
+        return axiosApi.post('/user-stories', request, getHeaders());
+    },
+    
+    getUserStory(id: string): Promise<AxiosResponse<UserStoryDetailResponse>> {
+        return axiosApi.get(`/user-stories/${id}`, getHeaders());
+    },
+    
+    getUserStories(params?: { projectId?: string; ownerId?: string; status?: string }): Promise<AxiosResponse<UserStoryListResponse>> {
+        return axiosApi.get('/user-stories', { ...getHeaders(), params });
+    },
+    
+    updateUserStory(id: string, request: CreateUserStoryRequest): Promise<AxiosResponse<UserStoryDetailResponse>> {
+        return axiosApi.put(`/user-stories/${id}`, request, getHeaders());
+    },
+    
+    updateUserStoryStatus(id: string, status: string): Promise<AxiosResponse<UserStoryDetailResponse>> {
+        return axiosApi.patch(`/user-stories/${id}/status`, { status }, getHeaders());
+    },
+    
+    deleteUserStory(id: string): Promise<AxiosResponse<{ success: boolean; message: string }>> {
+        return axiosApi.delete(`/user-stories/${id}`, getHeaders());
     }
 }
 
