@@ -17,7 +17,7 @@ public class SecurityUtils {
     private SecurityUtils() {
     }
 
-    public static String getCurrentUserLogin() {
+    public static String getCurrentUserName() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null) {
             Object principal = authentication.getPrincipal();

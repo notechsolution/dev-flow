@@ -80,7 +80,7 @@
                                     </template>
                                 </el-menu-item>
                                 <el-menu-item v-if="store.role === 'ADMIN' || store.role === 'OPERATOR'"
-                                              key="/manageUser" index="/manageUser">
+                                              key="/users" index="/users">
                                     <template #title>
                                         <el-icon>
                                             <svg height="1em" viewBox="0 0 24 24" width="1em"
@@ -92,7 +92,21 @@
                                                     stroke-width="1.5"></path>
                                             </svg>
                                         </el-icon>
-                                        <span>User</span>
+                                        <span>用户管理</span>
+                                    </template>
+                                </el-menu-item>
+                                <el-menu-item v-if="store.role === 'ADMIN' || store.role === 'OPERATOR'"
+                                              key="/projects" index="/projects">
+                                    <template #title>
+                                        <el-icon>
+                                            <svg height="1em" viewBox="0 0 24 24" width="1em"
+                                                 xmlns="http://www.w3.org/2000/svg">
+                                                <path
+                                                    d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v2h16V5a1 1 0 0 0-1-1zm-1 4v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8zM7 11h5v2H7zm0 4h3v2H7z"
+                                                    fill="currentColor"></path>
+                                            </svg>
+                                        </el-icon>
+                                        <span>项目管理</span>
                                     </template>
                                 </el-menu-item>
                             </el-menu>
