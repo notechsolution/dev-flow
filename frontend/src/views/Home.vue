@@ -80,7 +80,7 @@
                                     </template>
                                 </el-menu-item>
                                 <el-menu-item v-if="store.role === 'ADMIN' || store.role === 'OPERATOR'"
-                                              key="/manageUser" index="/manageUser">
+                                              key="/users" index="/users">
                                     <template #title>
                                         <el-icon>
                                             <svg height="1em" viewBox="0 0 24 24" width="1em"
@@ -92,7 +92,7 @@
                                                     stroke-width="1.5"></path>
                                             </svg>
                                         </el-icon>
-                                        <span>User</span>
+                                        <span>用户管理</span>
                                     </template>
                                 </el-menu-item>
                             </el-menu>

@@ -217,6 +217,46 @@ export interface UserStoryDetailResponse {
     data: UserStoryResponse;
 }
 
+// User Management interfaces
+export interface CreateUserRequest {
+    username: string;
+    email: string;
+    password: string;
+    role: string; // OPERATOR, ADMIN, USER
+    projectIds?: string[];
+}
+
+export interface UpdateUserRequest {
+    username: string;
+    email: string;
+    password?: string;
+    role: string;
+    projectIds?: string[];
+}
+
+export interface UserManagementResponse {
+    id: string;
+    username: string;
+    email: string;
+    role: string;
+    projectIds?: string[];
+    createdBy: string;
+    createdAt: string;
+    updatedBy: string;
+    updatedAt: string;
+}
+
+export interface UserListResponse {
+    success: boolean;
+    data: UserManagementResponse[];
+    total: number;
+}
+
+export interface UserDetailResponse {
+    success: boolean;
+    data: UserManagementResponse;
+}
+
 export default {
     logout(): Promise<AxiosResponse<any>> {
         return axiosApi.post('/auth/logout', null, getHeaders());
@@ -262,6 +302,27 @@ export default {
     
     deleteUserStory(id: string): Promise<AxiosResponse<{ success: boolean; message: string }>> {
         return axiosApi.delete(`/user-stories/${id}`, getHeaders());
+    },
+    
+    // User Management API methods
+    createUser(request: CreateUserRequest): Promise<AxiosResponse<UserDetailResponse>> {
+        return axiosApi.post('/users', request, getHeaders());
+    },
+    
+    getUser(id: string): Promise<AxiosResponse<UserDetailResponse>> {
+        return axiosApi.get(`/users/${id}`, getHeaders());
+    },
+    
+    getUsers(params?: { role?: string; projectId?: string }): Promise<AxiosResponse<UserListResponse>> {
+        return axiosApi.get('/users', { ...getHeaders(), params });
+    },
+    
+    updateUser(id: string, request: UpdateUserRequest): Promise<AxiosResponse<UserDetailResponse>> {
+        return axiosApi.put(`/users/${id}`, request, getHeaders());
+    },
+    
+    deleteUser(id: string): Promise<AxiosResponse<{ success: boolean; message: string }>> {
+        return axiosApi.delete(`/users/${id}`, getHeaders());
     }
 }
 
