@@ -23,7 +23,7 @@
             @change="loadProjects"
           />
         </el-form-item>
-        <el-form-item label="状态">
+        <el-form-item label="状态" style="width: 150px;">
           <el-select 
             v-model="filters.status" 
             placeholder="选择状态" 
@@ -84,7 +84,7 @@
           {{ formatDate(scope.row.createdAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="180" fixed="right">
+      <el-table-column label="操作" width="220" fixed="right">
         <template #default="scope">
           <el-button 
             type="primary" 
@@ -155,10 +155,8 @@
             placeholder="选择Git类型"
             clearable
           >
-            <el-option label="GitHub" value="GITHUB" />
-            <el-option label="GitLab" value="GITLAB" />
-            <el-option label="Bitbucket" value="BITBUCKET" />
-            <el-option label="Azure DevOps" value="AZURE_DEVOPS" />
+          <el-option label="GitLab" value="GITLAB" />
+          <el-option label="GitHub" value="GITHUB" />
           </el-select>
         </el-form-item>
 
@@ -199,9 +197,7 @@
             placeholder="选择项目管理系统"
             clearable
           >
-            <el-option label="Jira" value="JIRA" />
-            <el-option label="Azure DevOps" value="AZURE_DEVOPS" />
-            <el-option label="GitHub Issues" value="GITHUB_ISSUES" />
+            <el-option label="禅道" value="ZENTAO" />
             <el-option label="Trello" value="TRELLO" />
           </el-select>
         </el-form-item>
@@ -372,7 +368,7 @@ const projectFormRef = ref<FormInstance>();
 // Filters
 const filters = reactive({
   name: '',
-  status: ''
+  status: 'ACTIVE' 
 });
 
 // Form
@@ -383,13 +379,13 @@ const defaultProjectForm = {
   adminIds: [] as string[],
   memberIds: [] as string[],
   gitRepository: {
-    type: '',
+    type: 'GITLAB',
     baseUrl: '',
     repositoryIds: [] as string[],
     accessToken: ''
   },
   projectManagementSystem: {
-    type: '',
+    type: 'ZENTAO',
     systemId: '',
     baseUrl: '',
     accessToken: ''

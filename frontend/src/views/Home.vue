@@ -42,43 +42,16 @@
                                     </template>
                                 </el-menu-item>
 
-                                <el-sub-menu key="/requirement" index="/requirement">
-                                    <template #title>
-                                        <el-icon>
-                                            <DocumentCopy/>
-                                        </el-icon>
-                                        <span>User Story</span>
-                                    </template>
-                                    <el-menu-item key="/requirement/UserStoryCreation"
+                                  <el-menu-item key="/requirement/UserStoryCreation"
                                                   index="/requirement/UserStoryCreation">
                                         <template #title>
                                             <el-icon>
                                                 <Plus/>
                                             </el-icon>
-                                            <span>Creation</span>
+                                            <span>需求创建</span>
                                         </template>
                                     </el-menu-item>
-                                </el-sub-menu>
 
-                                <el-menu-item v-if="store.role === 'ADMIN' || store.role === 'OPERATOR'"
-                                              key="/metering" index="/metering">
-                                    <template #title>
-                                        <el-icon>
-                                            <Money/>
-                                        </el-icon>
-                                        <span>Metering</span>
-                                    </template>
-                                </el-menu-item>
-
-                                <el-menu-item v-if="store.role === 'ADMIN' || store.role === 'OPERATOR'"
-                                              key="/projectConfig" index="/projectConfig">
-                                    <template #title>
-                                        <el-icon>
-                                            <Tools/>
-                                        </el-icon>
-                                        <span>Project</span>
-                                    </template>
-                                </el-menu-item>
                                 <el-menu-item v-if="store.role === 'ADMIN' || store.role === 'OPERATOR'"
                                               key="/users" index="/users">
                                     <template #title>

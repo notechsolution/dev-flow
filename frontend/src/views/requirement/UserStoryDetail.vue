@@ -69,20 +69,11 @@
                             {{ userStory.priority || 'MEDIUM' }}
                         </el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="负责人">
-                        {{ getUserName(userStory.ownerId) }}
-                    </el-descriptions-item>
                     <el-descriptions-item label="创建人">
-                        {{ getUserName(userStory.createdBy) }}
+                        {{ userStory.createdBy }}
                     </el-descriptions-item>
                     <el-descriptions-item label="创建时间">
                         {{ formatDate(userStory.createdAt) }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="更新时间">
-                        {{ formatDate(userStory.updatedAt) }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="更新人">
-                        {{ getUserName(userStory.updatedBy) }}
                     </el-descriptions-item>
                 </el-descriptions>
             </div>
@@ -201,17 +192,7 @@ const userStory = ref<UserStoryResponse | null>(null)
 const activeTab = ref('original')
 
 // Mock data
-const projects = ref([
-    { id: '1', name: 'Project Alpha' },
-    { id: '2', name: 'Project Beta' },
-    { id: '3', name: 'Project Gamma' }
-])
-
-const users = ref([
-    { id: '1', username: 'john.doe' },
-    { id: '2', username: 'jane.smith' },
-    { id: '3', username: 'bob.wilson' }
-])
+const projects = ref<Array<{ id: string; name: string }>>([])
 
 const statusOptions = [
     { label: '待办', value: 'BACKLOG' },
@@ -247,6 +228,21 @@ const loadUserStory = async () => {
     }
 }
 
+// Load projects from backend
+const loadProjects = async () => {
+    try {
+        const response = await aiApi.getProjects()
+        if (response.data.success) {
+            projects.value = response.data.data.map((project: any) => ({
+                id: project.id,
+                name: project.name
+            }))
+        }
+    } catch (error) {
+        console.error('Failed to load projects:', error)
+        ElMessage.error('加载项目列表失败')
+    }
+}
 const updateStatus = async () => {
     if (!userStory.value) return
 
@@ -327,9 +323,6 @@ const getProjectName = (projectId: string) => {
     return projects.value.find(p => p.id === projectId)?.name || projectId
 }
 
-const getUserName = (userId: string) => {
-    return users.value.find(u => u.id === userId)?.username || userId
-}
 
 const getPriorityType = (priority: string) => {
     const types: Record<string, any> = {
@@ -364,8 +357,9 @@ const formatDate = (date: string) => {
 }
 
 // Initialize
-onMounted(() => {
-    loadUserStory()
+onMounted(async () => {
+    await loadProjects()
+    await loadUserStory()
 })
 </script>
 

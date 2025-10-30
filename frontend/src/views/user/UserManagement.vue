@@ -234,12 +234,23 @@ const userForm = reactive({
     projectIds: [] as string[]
 })
 
-// Mock data - replace with actual API calls
-const projects = ref([
-    { id: '1', name: 'Project Alpha' },
-    { id: '2', name: 'Project Beta' },
-    { id: '3', name: 'Project Gamma' }
-])
+// Data loaded from backend
+const projects = ref<Array<{ id: string; name: string }>>([])
+
+// Load projects from backend
+const loadProjects = async () => {
+    try {
+        const response = await aiApi.getProjects()
+        if (response.data.success) {
+            projects.value = response.data.data.map((project: any) => ({
+                id: project.id,
+                name: project.name
+            }))
+        }
+    } catch (error) {
+        console.error('Failed to load projects:', error)
+    }
+}
 
 const roleOptions = [
     { label: '操作员', value: 'OPERATOR' },
@@ -420,6 +431,7 @@ const formatDate = (date: string) => {
 
 // Initialize
 onMounted(() => {
+    loadProjects()
     loadUsers()
 })
 </script>

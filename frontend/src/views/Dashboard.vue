@@ -23,18 +23,40 @@ const pagination = reactive({
     total: 0
 })
 
-// Mock data - replace with actual API calls
-const projects = ref([
-    { id: '1', name: 'Project Alpha' },
-    { id: '2', name: 'Project Beta' },
-    { id: '3', name: 'Project Gamma' }
-])
+// Data loaded from backend
+const projects = ref<Array<{ id: string; name: string }>>([])
 
-const users = ref([
-    { id: '1', username: 'john.doe' },
-    { id: '2', username: 'jane.smith' },
-    { id: '3', username: 'bob.wilson' }
-])
+const users = ref<Array<{ id: string; username: string }>>([])
+
+// Load projects from backend
+const loadProjects = async () => {
+    try {
+        const response = await aiApi.getProjects()
+        if (response.data.success) {
+            projects.value = response.data.data.map((project: any) => ({
+                id: project.id,
+                name: project.name
+            }))
+        }
+    } catch (error) {
+        console.error('Failed to load projects:', error)
+    }
+}
+
+// Load users from backend
+const loadUsers = async () => {
+    try {
+        const response = await aiApi.getUsers()
+        if (response.data.success) {
+            users.value = response.data.data.map((user: any) => ({
+                id: user.id,
+                username: user.username
+            }))
+        }
+    } catch (error) {
+        console.error('Failed to load users:', error)
+    }
+}
 
 const statusOptions = [
     { label: '待办', value: 'BACKLOG' },
@@ -160,6 +182,8 @@ const formatDate = (date: string) => {
 
 // Initialize
 onMounted(() => {
+    loadProjects()
+    loadUsers()
     loadUserStories()
 })
 </script>
