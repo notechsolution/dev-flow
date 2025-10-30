@@ -99,7 +99,13 @@ public class AuthService {
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(UserRole.USER);
+
+        long userCount = userRepository.count();
+        if (userCount == 0) {
+            user.setRole(UserRole.OPERATOR);
+        } else {
+            user.setRole(UserRole.USER);
+        }
         user.setProjectIds(new ArrayList<>());
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
