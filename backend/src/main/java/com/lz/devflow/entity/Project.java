@@ -86,7 +86,7 @@ public class Project {
     
     // Nested class for Project Management System
     public static class ProjectManagementSystem {
-        private String type; // JIRA, AZURE_DEVOPS, GITHUB_ISSUES, TRELLO
+        private String type; // Zentao, AZURE_DEVOPS, GITHUB_ISSUES, TRELLO
         private String systemId; // Project ID in the PM system
         private String baseUrl;
         private String accessToken;

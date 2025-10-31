@@ -46,6 +46,9 @@
                     <el-descriptions-item label="Story ID">
                         <el-tag size="small">{{ userStory.id.substring(0, 8) }}</el-tag>
                     </el-descriptions-item>
+                    <el-descriptions-item label="外部系统ID" v-if="userStory.storyId">
+                        <el-tag type="success" size="small">{{ userStory.storyId }}</el-tag>
+                    </el-descriptions-item>
                     <el-descriptions-item label="项目">
                         <el-tag type="info">{{ getProjectName(userStory.projectId || '') }}</el-tag>
                     </el-descriptions-item>

@@ -14,6 +14,9 @@ public class UserStoryResponse {
     private List<String> tags;
     private String ownerId;
     
+    // ID from external project management system
+    private String storyId;
+    
     private String originalRequirement;
     private List<ClarificationQA> clarificationQAs;
     
@@ -115,6 +118,14 @@ public class UserStoryResponse {
     
     public void setOwnerId(String ownerId) {
         this.ownerId = ownerId;
+    }
+    
+    public String getStoryId() {
+        return storyId;
+    }
+    
+    public void setStoryId(String storyId) {
+        this.storyId = storyId;
     }
     
     public String getOriginalRequirement() {

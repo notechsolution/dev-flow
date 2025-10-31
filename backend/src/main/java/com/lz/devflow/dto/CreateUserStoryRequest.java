@@ -33,6 +33,7 @@ public class CreateUserStoryRequest {
     
     private String status;
     private String priority;
+    private String storyId;
     
     // Constructors
     public CreateUserStoryRequest() {
@@ -188,5 +189,12 @@ public class CreateUserStoryRequest {
     
     public void setPriority(String priority) {
         this.priority = priority;
+    }
+
+    public String getStoryId() {
+        return storyId;
+    }
+    public void setStoryId(String storyId) {
+        this.storyId = storyId;
     }
 }

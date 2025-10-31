@@ -167,6 +167,9 @@ export interface RequirementOptimizationResponse {
 export interface CreateUserStoryRequest {
     title: string;
     projectId?: string;
+    tags?: string[];
+    ownerId?: string;
+    storyId?: string;
     originalRequirement: string;
     clarificationQAs?: Array<{
         questionId: string;
@@ -186,6 +189,8 @@ export interface UserStoryResponse {
     id: string;
     title: string;
     projectId?: string;
+    storyId?: string;  // ID from external project management system (e.g., Zentao)
+    tags?: string[];
     originalRequirement: string;
     clarificationQAs?: Array<{
         questionId: string;

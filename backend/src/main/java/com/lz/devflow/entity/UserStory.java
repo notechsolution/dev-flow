@@ -22,6 +22,9 @@ public class UserStory implements Serializable {
     private List<String> tags;
     private String ownerId;
     
+    // ID from external project management system
+    private String storyId;
+    
     // Original requirement from user
     private String originalRequirement;
     
@@ -147,6 +150,14 @@ public class UserStory implements Serializable {
     
     public void setOwnerId(String ownerId) {
         this.ownerId = ownerId;
+    }
+    
+    public String getStoryId() {
+        return storyId;
+    }
+    
+    public void setStoryId(String storyId) {
+        this.storyId = storyId;
     }
     
     public String getOriginalRequirement() {

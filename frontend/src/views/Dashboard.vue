@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Refresh } from '@element-plus/icons-vue'
+import { Plus, Search, Refresh, Link } from '@element-plus/icons-vue'
 import aiApi, { UserStoryResponse } from '@/api/backend-api'
 
 const router = useRouter()
@@ -276,9 +276,24 @@ onMounted(() => {
                 @row-click="viewUserStory"
                 :row-style="{ cursor: 'pointer' }"
             >
-                <el-table-column prop="id" label="Story ID" width="120">
+                <el-table-column prop="id" label="ID" width="180">
                     <template #default="{ row }">
-                        <el-tag size="small">{{ row.id.substring(0, 8) }}</el-tag>
+                        <div class="id-column">
+                            <div v-if="row.storyId" class="external-id">
+                                <el-tag type="success" size="small">
+                                    <el-icon style="margin-right: 4px;"><Link /></el-icon>
+                                    {{ row.storyId }}
+                                </el-tag>
+                                <el-tooltip content="外部系统ID" placement="top">
+                                    <span class="id-label">外部ID</span>
+                                </el-tooltip>
+                            </div>
+                            <div v-else class="internal-id">
+                                <el-tag size="small">
+                                    {{ row.id.substring(0, 8) }}
+                                </el-tag>
+                            </div>
+                        </div>
                     </template>
                 </el-table-column>
 
@@ -410,6 +425,32 @@ onMounted(() => {
 
 :deep(.el-card__body) {
     padding: 20px;
+}
+
+/* ID Column Styles */
+.id-column {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.external-id,
+.internal-id {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.id-label {
+    font-size: 11px;
+    color: #909399;
+    font-weight: 500;
+}
+
+.external-id .el-tag {
+    background-color: #f0f9ff;
+    border-color: #67c23a;
+    color: #67c23a;
 }
 
 @media (max-width: 768px) {

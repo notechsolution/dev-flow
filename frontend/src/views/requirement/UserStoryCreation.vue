@@ -1,7 +1,7 @@
 <template>
     <div class="user-story-creation">
         <div class="page-header">
-            <h1>Create User Story</h1>
+            <h1>{{ isEditMode ? '编辑 User Story' : 'Create User Story' }}</h1>
         </div>
 
         <!-- Meta Data Section - Only show in first step -->
@@ -61,6 +61,12 @@
                                 :value="user.id"
                             />
                         </el-select>
+                    </el-form-item>
+                </el-col>
+                
+                <el-col :span="4" v-if="isEditMode && userStory.storyId">
+                    <el-form-item label="外部系统ID">
+                        <el-tag type="success" size="default">{{ userStory.storyId }}</el-tag>
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -157,13 +163,21 @@
                 <div class="step-actions">
                     <el-button size="large" @click="currentStep = 1">上一步</el-button>
                     <el-button 
+                        v-if="hasExistingOptimization"
+                        type="info"
+                        size="large" 
+                        @click="viewExistingOptimization"
+                    >
+                        查看现有优化需求
+                    </el-button>
+                    <el-button 
                         type="primary" 
                         size="large" 
                         @click="goToOptimization"
                         :disabled="!allQuestionsAnswered"
                         :loading="generatingOptimization"
                     >
-                        下一步：需求优化
+                        {{ hasExistingOptimization ? '重新优化需求' : '下一步：需求优化' }}
                     </el-button>
                 </div>
             </div>
@@ -253,7 +267,7 @@
 
 <script lang="ts" setup>
 import { ref, reactive, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
 import MilkdownEditor from '@/components/MilkdownEditor.vue'
@@ -261,6 +275,11 @@ import { MilkdownProvider } from "@milkdown/vue"
 import aiApi, { ClarificationQuestion, QuestionAnswer } from '@/api/backend-api'
 
 const router = useRouter()
+const route = useRoute()
+
+// Check if in edit mode
+const isEditMode = computed(() => !!route.params.id)
+const userStoryId = ref<string>('')
 
 // Step management
 const currentStep = ref(1) // 1: Input, 2: Clarification, 3: Optimization
@@ -277,6 +296,7 @@ const userStory = reactive({
     title: '',
     tags: [] as string[],
     ownerId: '',
+    storyId: '', // External PM system ID
     originalRequirement: '',
     description: '',
     status: 'BACKLOG',
@@ -332,6 +352,59 @@ const loadUsers = async () => {
     }
 }
 
+// Load existing user story (for edit mode)
+const loadUserStory = async () => {
+    if (!route.params.id) return
+    
+    const id = route.params.id as string
+    userStoryId.value = id
+    
+    try {
+        const response = await aiApi.getUserStory(id)
+        if (response.data.success) {
+            const story = response.data.data
+            
+            // Populate form with existing data
+            Object.assign(userStory, {
+                projectId: story.projectId || '',
+                title: story.title || '',
+                tags: story.tags || [],
+                ownerId: story.ownerId || '',
+                storyId: story.storyId || '',
+                originalRequirement: story.originalRequirement || '',
+                status: story.status || 'BACKLOG',
+                priority: story.priority || 'MEDIUM'
+            })
+            
+            // If already has optimized content, load it
+            if (story.optimizedRequirement || story.userStory) {
+                Object.assign(optimizationResult, {
+                    optimizedRequirement: story.optimizedRequirement || '',
+                    userStory: story.userStory || '',
+                    acceptanceCriteria: story.acceptanceCriteria || '',
+                    technicalNotes: story.technicalNotes || ''
+                })
+                
+                // If has clarification QAs, load them
+                if (story.clarificationQAs && story.clarificationQAs.length > 0) {
+                    clarificationQuestions.value = story.clarificationQAs.map((qa: any) => ({
+                        id: qa.questionId,
+                        question: qa.question,
+                        answer: qa.answer || '',
+                        category: qa.category
+                    }))
+                }
+            }
+            
+            ElMessage.success('用户故事加载成功')
+        }
+    } catch (error: any) {
+        ElMessage.error(error.response?.data?.message || '加载用户故事失败')
+        console.error('Load user story error:', error)
+        router.back()
+    }
+}
+
 const availableTags = ref([
     'frontend', 'backend', 'api', 'ui/ux', 'database',
     'authentication', 'performance', 'security', 'testing'
@@ -349,6 +422,14 @@ const answeredQuestionsCount = computed(() => {
 const allQuestionsAnswered = computed(() => {
     return clarificationQuestions.value.length > 0 && 
            clarificationQuestions.value.every(q => q.answer && q.answer.trim())
+})
+
+// Check if there's existing optimization (for edit mode)
+const hasExistingOptimization = computed(() => {
+    return isEditMode.value && (
+        optimizationResult.optimizedRequirement !== '' ||
+        optimizationResult.userStory !== ''
+    )
 })
 
 // Methods
@@ -412,10 +493,35 @@ const goToClarification = async () => {
     }
 }
 
+const viewExistingOptimization = () => {
+    // Simply navigate to step 3 to view existing optimization without calling AI
+    if (hasExistingOptimization.value) {
+        currentStep.value = 3
+        ElMessage.success('已加载现有优化需求')
+    }
+}
+
 const goToOptimization = async () => {
     if (!allQuestionsAnswered.value) {
         ElMessage.warning('请回答所有问题后再继续')
         return
+    }
+
+    // If there's existing optimization, confirm before regenerating
+    if (hasExistingOptimization.value) {
+        try {
+            await ElMessageBox.confirm(
+                '您已有优化后的需求，重新优化将覆盖现有内容。确定要继续吗？',
+                '确认重新优化',
+                {
+                    confirmButtonText: '重新优化',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }
+            )
+        } catch {
+            return // User cancelled
+        }
     }
 
     currentStep.value = 3
@@ -484,6 +590,9 @@ const saveUserStory = async () => {
         const request = {
             title: userStory.title,
             projectId: userStory.projectId,
+            tags: userStory.tags,
+            ownerId: userStory.ownerId,
+            storyId: userStory.storyId,
             originalRequirement: userStory.originalRequirement,
             clarificationQAs: clarificationQuestions.value.map(q => ({
                 questionId: q.id,
@@ -499,10 +608,18 @@ const saveUserStory = async () => {
             priority: userStory.priority
         }
 
-        const response = await aiApi.createUserStory(request)
+        let response
+        if (isEditMode.value && userStoryId.value) {
+            // Update existing user story
+            response = await aiApi.updateUserStory(userStoryId.value, request)
+            ElMessage.success('User Story 更新成功!')
+        } else {
+            // Create new user story
+            response = await aiApi.createUserStory(request)
+            ElMessage.success('User Story 保存成功!')
+        }
         
         if (response.data.success) {
-            ElMessage.success('User Story 保存成功!')
             router.push('/dashboard')
         } else {
             ElMessage.error('保存失败')
@@ -541,6 +658,11 @@ const cancel = async () => {
 onMounted(async () => {
     await loadProjects()
     await loadUsers()
+    
+    // If in edit mode, load existing user story
+    if (isEditMode.value) {
+        await loadUserStory()
+    }
 })
 </script>
 

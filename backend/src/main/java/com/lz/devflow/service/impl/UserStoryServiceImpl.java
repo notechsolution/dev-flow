@@ -2,15 +2,21 @@ package com.lz.devflow.service.impl;
 
 import com.lz.devflow.dto.CreateUserStoryRequest;
 import com.lz.devflow.dto.UserStoryResponse;
+import com.lz.devflow.entity.Project;
 import com.lz.devflow.entity.UserStory;
+import com.lz.devflow.repository.ProjectRepository;
 import com.lz.devflow.repository.UserStoryRepository;
 import com.lz.devflow.service.UserStoryService;
+import com.lz.devflow.service.pms.ProjectManagementSystemService;
+
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -23,9 +29,20 @@ public class UserStoryServiceImpl implements UserStoryService {
     private static final Logger logger = LoggerFactory.getLogger(UserStoryServiceImpl.class);
     
     private final UserStoryRepository userStoryRepository;
+    private final ProjectRepository projectRepository;
+    private final Map<String, ProjectManagementSystemService> pmsServices;
     
-    public UserStoryServiceImpl(UserStoryRepository userStoryRepository) {
+    public UserStoryServiceImpl(UserStoryRepository userStoryRepository,
+                                ProjectRepository projectRepository,
+                                List<ProjectManagementSystemService> pmsServiceList) {
         this.userStoryRepository = userStoryRepository;
+        this.projectRepository = projectRepository;
+        // Create a map of PMS services by type for easy lookup
+        this.pmsServices = pmsServiceList.stream()
+                .collect(Collectors.toMap(
+                        service -> service.getType().toUpperCase(),
+                        service -> service
+                ));
     }
     
     @Override
@@ -43,7 +60,50 @@ public class UserStoryServiceImpl implements UserStoryService {
         UserStory saved = userStoryRepository.save(userStory);
         logger.info("User story created with ID: {}", saved.getId());
         
+        // Integrate with project management system if configured
+        saved = createUserStoryInProjectManagementSystem(request, saved);
+        
         return convertToResponse(saved);
+    }
+
+    private UserStory createUserStoryInProjectManagementSystem(CreateUserStoryRequest request, UserStory saved) {
+        if (request.getProjectId() != null && StringUtils.isEmpty(saved.getStoryId())) {
+            try {
+                Optional<Project> projectOpt = projectRepository.findById(request.getProjectId());
+                if (projectOpt.isPresent()) {
+                    Project project = projectOpt.get();
+                    Project.ProjectManagementSystem pms = project.getProjectManagementSystem();
+                    
+                    if (pms != null && pms.getType() != null) {
+                        logger.info("Project has PMS configured: {}", pms.getType());
+                        
+                        ProjectManagementSystemService pmsService = pmsServices.get(pms.getType().toUpperCase());
+                        if (pmsService != null) {
+                            logger.info("Creating story in {} for user story: {}", pms.getType(), saved.getId());
+                            
+                            String storyId = pmsService.createStory(
+                                    saved,
+                                    pms.getSystemId(),
+                                    pms.getBaseUrl(),
+                                    pms.getAccessToken()
+                            );
+                            
+                            // Update the user story with the external story ID
+                            saved.setStoryId(storyId);
+                            saved = userStoryRepository.save(saved);
+                            
+                            logger.info("Story created in {} with ID: {}", pms.getType(), storyId);
+                        } else {
+                            logger.warn("No PMS service found for type: {}", pms.getType());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Failed to create story in PMS, but user story was saved", e);
+                // Don't fail the entire operation if PMS integration fails
+            }
+        }
+        return saved;
     }
     
     @Override
@@ -93,6 +153,8 @@ public class UserStoryServiceImpl implements UserStoryService {
                 .orElseThrow(() -> new RuntimeException("User story not found with id: " + id));
         
         copyRequestToEntity(request, userStory);
+
+        createUserStoryInProjectManagementSystem(request, userStory);
         
         userStory.setUpdatedBy(currentUserId);
         userStory.setUpdatedAt(LocalDateTime.now());
@@ -142,6 +204,10 @@ public class UserStoryServiceImpl implements UserStoryService {
         entity.setTechnicalNotes(request.getTechnicalNotes());
         entity.setTestCases(request.getTestCases());
         
+        if(request.getStoryId() != null) {
+            entity.setStoryId(request.getStoryId());
+        }
+
         if (request.getStatus() != null) {
             entity.setStatus(request.getStatus());
         }
@@ -176,6 +242,7 @@ public class UserStoryServiceImpl implements UserStoryService {
         response.setTitle(entity.getTitle());
         response.setTags(entity.getTags());
         response.setOwnerId(entity.getOwnerId());
+        response.setStoryId(entity.getStoryId());
         response.setOriginalRequirement(entity.getOriginalRequirement());
         response.setOptimizedRequirement(entity.getOptimizedRequirement());
         response.setUserStory(entity.getUserStory());
