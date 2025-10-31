@@ -1,5 +1,6 @@
 package com.lz.devflow.entity;
 
+import com.lz.devflow.util.CryptoUtil;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -46,7 +47,7 @@ public class Project {
         private String type; // GITHUB, GITLAB, BITBUCKET, AZURE_DEVOPS
         private String baseUrl;
         private List<String> repositoryIds; // List of repository IDs/names
-        private String accessToken;
+        private String accessToken; // Encrypted access token
         
         public GitRepository() {
         }
@@ -76,11 +77,13 @@ public class Project {
         }
         
         public String getAccessToken() {
-            return accessToken;
+            // Decrypt when getting
+            return CryptoUtil.decrypt(accessToken);
         }
         
         public void setAccessToken(String accessToken) {
-            this.accessToken = accessToken;
+            // Encrypt when setting
+            this.accessToken = CryptoUtil.encrypt(accessToken);
         }
     }
     
@@ -89,7 +92,7 @@ public class Project {
         private String type; // Zentao, AZURE_DEVOPS, GITHUB_ISSUES, TRELLO
         private String systemId; // Project ID in the PM system
         private String baseUrl;
-        private String accessToken;
+        private String accessToken; // Encrypted access token
         
         public ProjectManagementSystem() {
         }
@@ -119,11 +122,13 @@ public class Project {
         }
         
         public String getAccessToken() {
-            return accessToken;
+            // Decrypt when getting
+            return CryptoUtil.decrypt(accessToken);
         }
         
         public void setAccessToken(String accessToken) {
-            this.accessToken = accessToken;
+            // Encrypt when setting
+            this.accessToken = CryptoUtil.encrypt(accessToken);
         }
     }
     
