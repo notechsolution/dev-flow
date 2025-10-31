@@ -1,6 +1,5 @@
 package com.lz.devflow.service.impl;
 
-import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lz.devflow.dto.*;
@@ -8,10 +7,12 @@ import com.lz.devflow.service.AIService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
@@ -20,48 +21,53 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
- * Implementation of AIService using Spring AI Alibaba with Qwen
- * This is now a legacy implementation, use UnifiedAIServiceImpl instead
- * Only activated when ai.service.implementation=qwen-legacy
+ * Unified AI Service implementation supporting multiple AI providers
+ * (Qwen/DashScope, Ollama, OpenAI, etc.)
+ * 
+ * This implementation uses Spring AI's ChatModel interface which allows
+ * switching between different providers via configuration.
  */
 @Service
-@ConditionalOnProperty(name = "ai.service.implementation", havingValue = "qwen-legacy")
-public class QwenAIServiceImpl implements AIService {
+@Primary
+@ConditionalOnProperty(name = "ai.service.implementation", havingValue = "unified", matchIfMissing = true)
+public class UnifiedAIServiceImpl implements AIService {
 
-    private static final Logger logger = LoggerFactory.getLogger(QwenAIServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(UnifiedAIServiceImpl.class);
 
-    private final DashScopeChatModel chatModel;
+    private final ChatModel chatModel;
     private final ObjectMapper objectMapper;
     private final String clarificationPromptTemplate;
     private final String optimizationPromptTemplate;
+    private final String providerType;
 
-    public QwenAIServiceImpl(
-            DashScopeChatModel chatModel,
+    public UnifiedAIServiceImpl(
+            ChatModel chatModel,
             @Value("classpath:prompts/requirement-clarification.st") Resource clarificationPrompt,
-            @Value("classpath:prompts/requirement-optimization.st") Resource optimizationPrompt) throws IOException {
+            @Value("classpath:prompts/requirement-optimization.st") Resource optimizationPrompt,
+            @Value("${ai.provider:qwen}") String providerType) throws IOException {
         
         this.chatModel = chatModel;
         this.objectMapper = new ObjectMapper();
+        this.providerType = providerType;
         
         // Load prompt templates
         this.clarificationPromptTemplate = clarificationPrompt.getContentAsString(StandardCharsets.UTF_8);
         this.optimizationPromptTemplate = optimizationPrompt.getContentAsString(StandardCharsets.UTF_8);
         
-        logger.info("QwenAIServiceImpl initialized with Spring AI Alibaba");
+        logger.info("UnifiedAIServiceImpl initialized with provider: {}, model: {}", 
+                    providerType, chatModel.getClass().getSimpleName());
     }
 
     @Override
     public UserStoryOptimizationResponse optimizeUserStory(UserStoryOptimizationRequest request) {
-        logger.info("Optimizing user story using Qwen (legacy method, delegating to new implementation)");
+        logger.info("Optimizing user story using {} provider", providerType);
         
-        // This is a legacy method, we can delegate to the new implementation
-        // by treating it as a simple optimization without clarification
         try {
             RequirementOptimizationRequest optimizationRequest = new RequirementOptimizationRequest();
             optimizationRequest.setOriginalRequirement(request.getDescription());
             optimizationRequest.setTitle(request.getTitle());
             optimizationRequest.setProjectContext(request.getProjectContext());
-            optimizationRequest.setClarificationAnswers(new ArrayList<>()); // No clarification
+            optimizationRequest.setClarificationAnswers(new ArrayList<>());
             
             RequirementOptimizationResponse response = optimizeRequirementWithClarification(optimizationRequest);
             
@@ -71,14 +77,14 @@ public class QwenAIServiceImpl implements AIService {
                 return UserStoryOptimizationResponse.error(response.getMessage());
             }
         } catch (Exception e) {
-            logger.error("Error in legacy optimizeUserStory method", e);
+            logger.error("Error optimizing user story", e);
             return UserStoryOptimizationResponse.error("Failed to optimize user story: " + e.getMessage());
         }
     }
 
     @Override
     public TestCaseGenerationResponse generateTestCases(TestCaseGenerationRequest request) {
-        logger.info("Generating test cases using Qwen");
+        logger.info("Generating test cases using {} provider", providerType);
         
         try {
             String description = request.getOptimizedDescription() != null && !request.getOptimizedDescription().trim().isEmpty()
@@ -95,93 +101,82 @@ public class QwenAIServiceImpl implements AIService {
                 description
             );
             
-            // Call Qwen using DashScopeChatModel
             Prompt prompt = new Prompt(new UserMessage(promptText));
             ChatResponse response = chatModel.call(prompt);
             String content = response.getResult().getOutput().getText();
             
-            // Parse the JSON response
             List<String> testCases = parseTestCasesFromJson(content);
             
             return TestCaseGenerationResponse.success(testCases);
             
         } catch (Exception e) {
-            logger.error("Error generating test cases with Qwen", e);
+            logger.error("Error generating test cases", e);
             return TestCaseGenerationResponse.error("Failed to generate test cases: " + e.getMessage());
         }
     }
 
     @Override
     public RequirementClarificationResponse generateClarificationQuestions(RequirementClarificationRequest request) {
-        logger.info("Generating clarification questions using Qwen with prompt template");
+        logger.info("Generating clarification questions using {} provider", providerType);
         
         try {
-            // Prepare the prompt using the template
             String promptText = clarificationPromptTemplate
                     .replace("{title}", request.getTitle() != null ? request.getTitle() : "N/A")
                     .replace("{projectContext}", request.getProjectContext() != null ? request.getProjectContext() : "N/A")
                     .replace("{requirement}", request.getOriginalRequirement());
             
-            logger.debug("Calling Qwen with clarification prompt");
+            logger.debug("Calling AI provider with clarification prompt");
             
-            // Call Qwen using DashScopeChatModel
             Prompt prompt = new Prompt(new UserMessage(promptText));
             ChatResponse response = chatModel.call(prompt);
             String content = response.getResult().getOutput().getText();
             
-            logger.debug("Received response from Qwen: {}", content.substring(0, Math.min(200, content.length())));
+            logger.debug("Received response from AI: {}", content.substring(0, Math.min(200, content.length())));
             
-            // Parse the JSON response
             List<RequirementClarificationResponse.ClarificationQuestion> questions = 
                     parseClarificationQuestionsFromJson(content);
             
             if (questions.isEmpty()) {
-                logger.warn("No questions parsed from Qwen response, using fallback");
+                logger.warn("No questions parsed from AI response, using fallback");
                 return generateDefaultClarificationQuestions(request);
             }
             
             return RequirementClarificationResponse.success(questions);
             
         } catch (Exception e) {
-            logger.error("Error generating clarification questions with Qwen", e);
-            // Fallback to default questions
+            logger.error("Error generating clarification questions", e);
             return generateDefaultClarificationQuestions(request);
         }
     }
 
     @Override
     public RequirementOptimizationResponse optimizeRequirementWithClarification(RequirementOptimizationRequest request) {
-        logger.info("Optimizing requirement with clarification using Qwen");
+        logger.info("Optimizing requirement with clarification using {} provider", providerType);
         
         try {
-            // Format the clarification Q&A
             StringBuilder qaBuilder = new StringBuilder();
             for (RequirementOptimizationRequest.QuestionAnswer qa : request.getClarificationAnswers()) {
                 qaBuilder.append(String.format("Q: %s\nA: %s\n\n", qa.getQuestion(), qa.getAnswer()));
             }
             
-            // Prepare the prompt using the template
             String promptText = optimizationPromptTemplate
                     .replace("{title}", request.getTitle() != null ? request.getTitle() : "N/A")
                     .replace("{projectContext}", request.getProjectContext() != null ? request.getProjectContext() : "N/A")
                     .replace("{originalRequirement}", request.getOriginalRequirement())
                     .replace("{clarificationQA}", qaBuilder.toString());
             
-            logger.debug("Calling Qwen with optimization prompt");
+            logger.debug("Calling AI provider with optimization prompt");
             
-            // Call Qwen using DashScopeChatModel
             Prompt prompt = new Prompt(new UserMessage(promptText));
-        
             ChatResponse response = chatModel.call(prompt);
             String content = response.getResult().getOutput().getText();
             
-            logger.debug("Received optimization response from Qwen");
+            logger.debug("Received optimization response from AI");
             
-            // Parse the JSON response
             return parseOptimizationResponse(content);
             
         } catch (Exception e) {
-            logger.error("Error optimizing requirement with Qwen", e);
+            logger.error("Error optimizing requirement", e);
             return RequirementOptimizationResponse.error("Failed to optimize requirement: " + e.getMessage());
         }
     }
@@ -193,20 +188,7 @@ public class QwenAIServiceImpl implements AIService {
         List<RequirementClarificationResponse.ClarificationQuestion> questions = new ArrayList<>();
         
         try {
-            // Clean the response - remove markdown code blocks if present
-            String cleaned = jsonResponse.trim();
-            if (cleaned.startsWith("```json")) {
-                cleaned = cleaned.substring(7);
-            }
-            if (cleaned.startsWith("```")) {
-                cleaned = cleaned.substring(3);
-            }
-            if (cleaned.endsWith("```")) {
-                cleaned = cleaned.substring(0, cleaned.length() - 3);
-            }
-            cleaned = cleaned.trim();
-            
-            // Parse JSON array
+            String cleaned = cleanJsonResponse(jsonResponse);
             JsonNode rootNode = objectMapper.readTree(cleaned);
             
             if (rootNode.isArray()) {
@@ -233,20 +215,7 @@ public class QwenAIServiceImpl implements AIService {
      */
     private RequirementOptimizationResponse parseOptimizationResponse(String jsonResponse) {
         try {
-            // Clean the response - remove markdown code blocks if present
-            String cleaned = jsonResponse.trim();
-            if (cleaned.startsWith("```json")) {
-                cleaned = cleaned.substring(7);
-            }
-            if (cleaned.startsWith("```")) {
-                cleaned = cleaned.substring(3);
-            }
-            if (cleaned.endsWith("```")) {
-                cleaned = cleaned.substring(0, cleaned.length() - 3);
-            }
-            cleaned = cleaned.trim();
-            
-            // Parse JSON object
+            String cleaned = cleanJsonResponse(jsonResponse);
             JsonNode rootNode = objectMapper.readTree(cleaned);
             
             String optimizedRequirement = rootNode.has("optimizedRequirement") 
@@ -274,20 +243,7 @@ public class QwenAIServiceImpl implements AIService {
         List<String> testCases = new ArrayList<>();
         
         try {
-            // Clean the response
-            String cleaned = jsonResponse.trim();
-            if (cleaned.startsWith("```json")) {
-                cleaned = cleaned.substring(7);
-            }
-            if (cleaned.startsWith("```")) {
-                cleaned = cleaned.substring(3);
-            }
-            if (cleaned.endsWith("```")) {
-                cleaned = cleaned.substring(0, cleaned.length() - 3);
-            }
-            cleaned = cleaned.trim();
-            
-            // Parse JSON array
+            String cleaned = cleanJsonResponse(jsonResponse);
             JsonNode rootNode = objectMapper.readTree(cleaned);
             
             if (rootNode.isArray()) {
@@ -298,11 +254,27 @@ public class QwenAIServiceImpl implements AIService {
             
         } catch (Exception e) {
             logger.error("Error parsing test cases JSON, using raw response", e);
-            // If JSON parsing fails, return the raw response as a single test case
             testCases.add(jsonResponse);
         }
         
         return testCases;
+    }
+
+    /**
+     * Clean JSON response by removing markdown code blocks
+     */
+    private String cleanJsonResponse(String jsonResponse) {
+        String cleaned = jsonResponse.trim();
+        if (cleaned.startsWith("```json")) {
+            cleaned = cleaned.substring(7);
+        }
+        if (cleaned.startsWith("```")) {
+            cleaned = cleaned.substring(3);
+        }
+        if (cleaned.endsWith("```")) {
+            cleaned = cleaned.substring(0, cleaned.length() - 3);
+        }
+        return cleaned.trim();
     }
 
     /**

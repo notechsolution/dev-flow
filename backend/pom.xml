@@ -178,6 +178,20 @@
             <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
             <version>1.0.0.3</version>
         </dependency>
+
+        <!-- Spring AI Ollama - Manual Configuration -->
+        <!-- Use core library without auto-configuration to avoid bean conflicts -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-ollama</artifactId>
+            <version>1.0.3</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.ai</groupId>
+                    <artifactId>spring-ai-spring-boot-autoconfigure</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 
     <build>
