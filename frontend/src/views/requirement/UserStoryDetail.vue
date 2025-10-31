@@ -47,7 +47,20 @@
                         <el-tag size="small">{{ userStory.id.substring(0, 8) }}</el-tag>
                     </el-descriptions-item>
                     <el-descriptions-item label="外部系统ID" v-if="userStory.storyId">
-                        <el-tag type="success" size="small">{{ userStory.storyId }}</el-tag>
+                        <el-tooltip 
+                            :content="isZentaoProject ? '点击跳转到禅道系统查看详情' : ''" 
+                            placement="top"
+                            :disabled="!isZentaoProject"
+                        >
+                            <el-tag 
+                                type="success" 
+                                size="small"
+                                :class="{ 'zentao-story-link': isZentaoProject }"
+                                @click="isZentaoProject && openZentaoStory()"
+                            >
+                                {{ userStory.storyId }}
+                            </el-tag>
+                        </el-tooltip>
                     </el-descriptions-item>
                     <el-descriptions-item label="项目">
                         <el-tag type="info">{{ getProjectName(userStory.projectId || '') }}</el-tag>
@@ -178,13 +191,14 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Edit, ArrowDown } from '@element-plus/icons-vue'
 import MilkdownEditor from '@/components/MilkdownEditor.vue'
 import { MilkdownProvider } from "@milkdown/vue"
-import aiApi, { UserStoryResponse } from '@/api/backend-api'
+import aiApi, { UserStoryResponse, ProjectResponse } from '@/api/backend-api'
+import _ from 'lodash'
 
 const router = useRouter()
 const route = useRoute()
@@ -194,8 +208,27 @@ const loading = ref(false)
 const userStory = ref<UserStoryResponse | null>(null)
 const activeTab = ref('original')
 
-// Mock data
-const projects = ref<Array<{ id: string; name: string }>>([])
+// Project data with full details including projectManagementSystem
+const projects = ref<Array<ProjectResponse>>([])
+
+// Computed properties
+const currentProject = computed(() => {
+    if (!userStory.value?.projectId) return null
+    return projects.value.find(p => p.id === userStory.value?.projectId) || null
+})
+
+const isZentaoProject = computed(() => {
+    return _.upperCase(currentProject.value?.projectManagementSystem?.type) === 'ZENTAO'
+})
+
+const zentaoStoryUrl = computed(() => {
+    if (!isZentaoProject.value || !userStory.value?.storyId) return null
+    const baseUrl = currentProject.value?.projectManagementSystem?.baseUrl
+    if (!baseUrl) return null
+    // Remove trailing slash if exists
+    const normalizedUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
+    return `${normalizedUrl}/story-view-${userStory.value.storyId}-0--story.html`
+})
 
 const statusOptions = [
     { label: '待办', value: 'BACKLOG' },
@@ -236,10 +269,7 @@ const loadProjects = async () => {
     try {
         const response = await aiApi.getProjects()
         if (response.data.success) {
-            projects.value = response.data.data.map((project: any) => ({
-                id: project.id,
-                name: project.name
-            }))
+            projects.value = response.data.data
         }
     } catch (error) {
         console.error('Failed to load projects:', error)
@@ -318,6 +348,12 @@ const deleteUserStory = async () => {
 
 const goBack = () => {
     router.push('/dashboard')
+}
+
+const openZentaoStory = () => {
+    if (zentaoStoryUrl.value) {
+        window.open(zentaoStoryUrl.value, '_blank')
+    }
 }
 
 // Helper methods
@@ -470,6 +506,18 @@ onMounted(async () => {
 
 :deep(.el-tabs__content) {
     padding: 0;
+}
+
+/* Zentao story link styles */
+.zentao-story-link {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.zentao-story-link:hover {
+    opacity: 0.8;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(103, 194, 58, 0.3);
 }
 
 @media (max-width: 768px) {
