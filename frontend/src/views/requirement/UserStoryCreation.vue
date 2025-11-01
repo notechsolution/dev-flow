@@ -210,7 +210,7 @@
                                 <MilkdownEditor
                                     ref="optimizedEditor"
                                     :content="optimizationResult.optimizedRequirement"
-                                    :readonly="true"
+                                    :readonly="false"
                                     :enable-copy="true"
                                     placeholder="优化后的需求将显示在这里..."
                                 />
@@ -221,7 +221,7 @@
                             <MilkdownProvider>
                                 <MilkdownEditor
                                     :content="optimizationResult.userStory"
-                                    :readonly="true"
+                                    :readonly="false"
                                     :enable-copy="true"
                                 />
                             </MilkdownProvider>
@@ -231,7 +231,7 @@
                             <MilkdownProvider>
                                 <MilkdownEditor
                                     :content="optimizationResult.acceptanceCriteria"
-                                    :readonly="true"
+                                    :readonly="false"
                                     :enable-copy="true"
                                 />
                             </MilkdownProvider>
@@ -241,7 +241,7 @@
                             <MilkdownProvider>
                                 <MilkdownEditor
                                     :content="optimizationResult.technicalNotes"
-                                    :readonly="true"
+                                    :readonly="false"
                                     :enable-copy="true"
                                 />
                             </MilkdownProvider>
