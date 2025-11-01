@@ -92,7 +92,7 @@
                                     </el-scrollbar>
                                 </el-main>
                                 <el-footer class="h-auto text-center text-sm text-gray-500">
-                                    Please carefully screen AI-generated content
+                                    内容由 AI 生成，请仔细甄别
                                 </el-footer>
                             </el-container>
                         </el-main>
