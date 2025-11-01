@@ -5,6 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lz.devflow.dto.zentao.*;
 import com.lz.devflow.entity.UserStory;
 import com.lz.devflow.service.pms.ProjectManagementSystemService;
+import com.vladsch.flexmark.html.HtmlRenderer;
+import com.vladsch.flexmark.parser.Parser;
+import com.vladsch.flexmark.util.ast.Node;
+import com.vladsch.flexmark.util.data.MutableDataSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
@@ -27,6 +31,8 @@ public class ZentaoService implements ProjectManagementSystemService {
     
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final Parser markdownParser;
+    private final HtmlRenderer htmlRenderer;
     
     // Cache for tokens to avoid frequent token requests
     private final Map<String, TokenCache> tokenCache = new HashMap<>();
@@ -34,6 +40,11 @@ public class ZentaoService implements ProjectManagementSystemService {
     public ZentaoService(RestTemplate restTemplate, ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
+
+        // Initialize flexmark-java parser and renderer
+        MutableDataSet options = new MutableDataSet();
+        this.markdownParser = Parser.builder(options).build();
+        this.htmlRenderer = HtmlRenderer.builder(options).build();
     }
     
     @Override
@@ -194,11 +205,11 @@ public class ZentaoService implements ProjectManagementSystemService {
             spec.append("**技术备注**\n").append(userStory.getTechnicalNotes()).append("\n\n");
         }
         
-        request.setSpec(spec.toString());
+        request.setSpec(convertMarkdownToHtml(spec.toString()));
         
         // Acceptance criteria as verification
         if (StringUtils.hasText(userStory.getAcceptanceCriteria())) {
-            request.setVerify(userStory.getAcceptanceCriteria());
+            request.setVerify(convertMarkdownToHtml(userStory.getAcceptanceCriteria()));
         }
         
         // Story type - default to "story"
@@ -238,6 +249,19 @@ public class ZentaoService implements ProjectManagementSystemService {
         // request.setStage("projected");
         
         return request;
+    }
+
+    /**
+     * Converts a Markdown string to its HTML representation.
+     * @param markdown The Markdown string to convert.
+     * @return The corresponding HTML string.
+     */
+    private String convertMarkdownToHtml(String markdown) {
+        if (!StringUtils.hasText(markdown)) {
+            return "";
+        }
+        Node document = markdownParser.parse(markdown);
+        return htmlRenderer.render(document);
     }
     
     /**
