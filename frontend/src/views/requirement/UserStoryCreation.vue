@@ -213,6 +213,7 @@
                                     :readonly="false"
                                     :enable-copy="true"
                                     placeholder="优化后的需求将显示在这里..."
+                                    @updated-content="onOptimizedRequirementUpdate"
                                 />
                             </MilkdownProvider>
                         </el-tab-pane>
@@ -223,6 +224,7 @@
                                     :content="optimizationResult.userStory"
                                     :readonly="false"
                                     :enable-copy="true"
+                                    @updated-content="onUserStoryUpdate"
                                 />
                             </MilkdownProvider>
                         </el-tab-pane>
@@ -233,6 +235,7 @@
                                     :content="optimizationResult.acceptanceCriteria"
                                     :readonly="false"
                                     :enable-copy="true"
+                                    @updated-content="onAcceptanceCriteriaUpdate"
                                 />
                             </MilkdownProvider>
                         </el-tab-pane>
@@ -243,6 +246,7 @@
                                     :content="optimizationResult.technicalNotes"
                                     :readonly="false"
                                     :enable-copy="true"
+                                    @updated-content="onTechnicalNotesUpdate"
                                 />
                             </MilkdownProvider>
                         </el-tab-pane>
@@ -435,6 +439,22 @@ const hasExistingOptimization = computed(() => {
 // Methods
 const onRequirementUpdate = (content: string) => {
     userStory.originalRequirement = content
+}
+
+const onOptimizedRequirementUpdate = (content: string) => {
+    optimizationResult.optimizedRequirement = content
+}
+
+const onUserStoryUpdate = (content: string) => {
+    optimizationResult.userStory = content
+}
+
+const onAcceptanceCriteriaUpdate = (content: string) => {
+    optimizationResult.acceptanceCriteria = content
+}
+
+const onTechnicalNotesUpdate = (content: string) => {
+    optimizationResult.technicalNotes = content
 }
 
 const getQuestionTagType = (category: string) => {
