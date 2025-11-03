@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -89,13 +90,13 @@ public class UserManagementServiceImpl implements UserManagementService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         // Check if username is being changed and if it's already taken
-        if (!user.getUsername().equals(request.getUsername()) && 
+        if (!Objects.equals(user.getUsername(), request.getUsername()) && 
             userRepository.existsByUsername(request.getUsername())) {
             throw new RuntimeException("Username already exists");
         }
         
         // Check if email is being changed and if it's already taken
-        if (!user.getEmail().equals(request.getEmail()) && 
+        if (!Objects.equals(user.getEmail(), request.getEmail()) && 
             userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already exists");
         }

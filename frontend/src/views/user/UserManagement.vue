@@ -269,8 +269,18 @@ const userFormRules: FormRules = {
         { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
     ],
     password: [
-        { required: dialogMode.value === 'create', message: '请输入密码', trigger: 'blur' },
-        { min: 6, message: '密码长度至少 6 个字符', trigger: 'blur' }
+        { 
+            validator: (rule, value, callback) => {
+                if (dialogMode.value === 'create' && !value) {
+                    callback(new Error('请输入密码'))
+                } else if (value && value.length < 6) {
+                    callback(new Error('密码长度至少 6 个字符'))
+                } else {
+                    callback()
+                }
+            }, 
+            trigger: 'blur' 
+        }
     ],
     role: [
         { required: true, message: '请选择角色', trigger: 'change' }

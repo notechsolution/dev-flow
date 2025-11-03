@@ -20,6 +20,7 @@ const routes = [
     {
         path: '/',
         component: () => import('@/views/Home.vue'),
+        redirect: '/dashboard',
         children: [
             {
                 path: '/requirement/UserStoryCreation',

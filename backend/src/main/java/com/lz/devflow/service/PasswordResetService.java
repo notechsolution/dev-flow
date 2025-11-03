@@ -2,6 +2,9 @@ package com.lz.devflow.service;
 
 import com.lz.devflow.entity.User;
 import com.lz.devflow.repository.UserRepository;
+
+import org.hibernate.validator.internal.util.logging.Log_.logger;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,6 +24,8 @@ public class PasswordResetService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    private static final Logger logger = org.slf4j.LoggerFactory.getLogger(PasswordResetService.class);
+
     public boolean initiatePasswordReset(String email) {
         User user = userRepository.findByEmail(email);
         if (user == null) {
@@ -33,6 +38,7 @@ public class PasswordResetService {
         userRepository.save(user);
 
         emailService.sendPasswordResetEmail(email, resetToken);
+        logger.info("Password reset email sent to {}", email);
         return true;
     }
 

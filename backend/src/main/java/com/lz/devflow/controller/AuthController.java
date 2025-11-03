@@ -13,6 +13,9 @@ import com.lz.devflow.service.AuthService;
 import com.lz.devflow.service.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +33,8 @@ public class AuthController {
 
     @Autowired
     private PasswordResetService passwordResetService;
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
 
     @PostMapping("/register")
@@ -95,6 +100,7 @@ public class AuthController {
                     .body(new RegisterResponse(false, "No user found with this email address", null));
             }
         } catch (Exception e) {
+            logger.error("Error processing forgot password request", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new RegisterResponse(false, "Failed to send password reset email", null));
         }
