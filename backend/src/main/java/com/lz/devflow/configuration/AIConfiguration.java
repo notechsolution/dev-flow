@@ -2,6 +2,8 @@ package com.lz.devflow.configuration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.ai.ollama.api.OllamaApi;
@@ -13,6 +15,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+
+import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
 
 /**
  * AI Configuration for multiple providers
@@ -77,5 +81,12 @@ public class AIConfiguration {
         public QwenConfiguration() {
             logger.info("Using DashScope (Qwen) ChatModel from spring-ai-alibaba auto-configuration");
         }
+    }
+
+    @Bean
+    public ChatClient chatClient(ChatModel chatModel) {
+        return ChatClient.builder(chatModel)
+                .defaultAdvisors(new SimpleLoggerAdvisor())
+                .build();
     }
 }

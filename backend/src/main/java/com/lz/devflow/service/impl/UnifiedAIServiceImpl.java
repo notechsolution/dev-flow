@@ -6,8 +6,8 @@ import com.lz.devflow.dto.*;
 import com.lz.devflow.service.AIService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,8 +23,8 @@ import java.util.*;
 /**
  * Unified AI Service implementation supporting multiple AI providers
  * (Qwen/DashScope, Ollama, OpenAI, etc.)
- * 
- * This implementation uses Spring AI's ChatModel interface which allows
+ *
+ * This implementation uses Spring AI's ChatClient interface which allows
  * switching between different providers via configuration.
  */
 @Service
@@ -34,19 +34,19 @@ public class UnifiedAIServiceImpl implements AIService {
 
     private static final Logger logger = LoggerFactory.getLogger(UnifiedAIServiceImpl.class);
 
-    private final ChatModel chatModel;
+    private final ChatClient chatClient;
     private final ObjectMapper objectMapper;
     private final String clarificationPromptTemplate;
     private final String optimizationPromptTemplate;
     private final String providerType;
 
     public UnifiedAIServiceImpl(
-            ChatModel chatModel,
+            ChatClient chatClient,
             @Value("classpath:prompts/requirement-clarification.st") Resource clarificationPrompt,
             @Value("classpath:prompts/requirement-optimization.st") Resource optimizationPrompt,
             @Value("${ai.provider:qwen}") String providerType) throws IOException {
         
-        this.chatModel = chatModel;
+        this.chatClient = chatClient;
         this.objectMapper = new ObjectMapper();
         this.providerType = providerType;
         
@@ -54,8 +54,8 @@ public class UnifiedAIServiceImpl implements AIService {
         this.clarificationPromptTemplate = clarificationPrompt.getContentAsString(StandardCharsets.UTF_8);
         this.optimizationPromptTemplate = optimizationPrompt.getContentAsString(StandardCharsets.UTF_8);
         
-        logger.info("UnifiedAIServiceImpl initialized with provider: {}, model: {}", 
-                    providerType, chatModel.getClass().getSimpleName());
+        logger.info("UnifiedAIServiceImpl initialized with provider: {}", 
+                    providerType);
     }
 
     @Override
@@ -102,7 +102,7 @@ public class UnifiedAIServiceImpl implements AIService {
             );
             
             Prompt prompt = new Prompt(new UserMessage(promptText));
-            ChatResponse response = chatModel.call(prompt);
+            ChatResponse response = chatClient.prompt(prompt).call().chatResponse();
             String content = response.getResult().getOutput().getText();
             
             List<String> testCases = parseTestCasesFromJson(content);
@@ -128,7 +128,7 @@ public class UnifiedAIServiceImpl implements AIService {
             logger.debug("Calling AI provider with clarification prompt");
             
             Prompt prompt = new Prompt(new UserMessage(promptText));
-            ChatResponse response = chatModel.call(prompt);
+            ChatResponse response = chatClient.prompt(prompt).call().chatResponse();
             String content = response.getResult().getOutput().getText();
             
             logger.debug("Received response from AI: {}", content.substring(0, Math.min(200, content.length())));
@@ -168,7 +168,7 @@ public class UnifiedAIServiceImpl implements AIService {
             logger.debug("Calling AI provider with optimization prompt");
             
             Prompt prompt = new Prompt(new UserMessage(promptText));
-            ChatResponse response = chatModel.call(prompt);
+            ChatResponse response = chatClient.prompt(prompt).call().chatResponse();
             String content = response.getResult().getOutput().getText();
             
             logger.debug("Received optimization response from AI");

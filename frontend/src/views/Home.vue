@@ -38,7 +38,7 @@
                                         <el-icon>
                                             <DataAnalysis/>
                                         </el-icon>
-                                        <span>Dashboard</span>
+                                        <span>首页</span>
                                     </template>
                                 </el-menu-item>
 
