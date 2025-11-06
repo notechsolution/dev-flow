@@ -101,6 +101,9 @@
             </el-container>
         </el-main>
     </el-container>
+    
+    <!-- 版本信息显示 -->
+    <VersionInfo />
 </template>
 
 <script lang="ts">
@@ -111,12 +114,13 @@ import backgroundImg from '../assets/img/banner_1.png'
 import {userStore} from "@/store/user";
 import {ChatDotSquare, DataAnalysis, DocumentCopy, HomeFilled, Money, Plus, Tools, User} from "@element-plus/icons-vue";
 import userApi from "@/api/user-api";
+import VersionInfo from "@/components/VersionInfo.vue";
 
 const store = userStore();
 
 export default defineComponent({
     name: 'LayoutContent',
-    components: {Money, Plus, DataAnalysis, ChatDotSquare, HomeFilled, DocumentCopy, User, Tools},
+    components: {VersionInfo, Money, Plus, DataAnalysis, ChatDotSquare, HomeFilled, DocumentCopy, User, Tools},
     setup() {
         const route = useRoute()
         const activeIndex = computed(() => route.path)

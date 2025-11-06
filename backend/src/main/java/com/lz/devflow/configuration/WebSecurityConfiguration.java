@@ -50,7 +50,7 @@ public class WebSecurityConfiguration {
         http
                 .authenticationProvider(authenticationProvider())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/ping", "/api/auth/**", "/", "/landing", "/api/user/loggedInUser").permitAll()
+                        .requestMatchers("/api/ping", "/api/auth/**", "/", "/landing", "/api/user/loggedInUser","/api/health/*").permitAll()
                         .requestMatchers("/static/**", "/favicon.ico", "/index.html", "/logo.png").permitAll()// allow public access to public resources
                         .anyRequest().authenticated()
                 )

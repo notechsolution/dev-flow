@@ -9,17 +9,36 @@
 - 🔐 OAuth2 集成 - 支持 GitHub 等第三方登录
 - 📊 项目管理 - 完整的项目和需求管理
 - 🗄️ MongoDB 存储 - 灵活的 NoSQL 数据库
+- 📦 版本管理 - 自动化版本追踪和 UI 显示
 
 ## 快速开始
 
-### 文档导航
+### 📚 文档导航
 
-- 📘 [部署指南](DEPLOYMENT_GUIDE.md) - 完整的部署文档，包含 MongoDB 配置
-- 🐳 [Docker 部署](DOCKER_DEPLOYMENT.md) - 使用 Docker Compose 快速部署
+#### 部署文档
+- 📦 [部署目录](deploy/) - **新！** 所有部署脚本和文档的集中位置
+- 🚀 [快速部署指南](deploy/docs/DEPLOYMENT_QUICK_START.md) - **新！** 5分钟快速部署到生产环境
+- 📦 [版本管理指南](deploy/docs/VERSION_MANAGEMENT_GUIDE.md) - **新！** 版本化管理完整方案
+- 🪟 [Windows 脚本指南](deploy/docs/WINDOWS_SCRIPTS_GUIDE.md) - **新！** Windows PowerShell 脚本完整说明
+- � [打包脚本指南](deploy/docs/BUILD_SCRIPTS_GUIDE.md) - **新！** 跨平台打包脚本使用说明
+- 📘 [完整部署指南](DEPLOYMENT_GUIDE.md) - 详细的部署文档，包含 MongoDB 配置
+
+#### 核心文档
 - 🔧 [故障排查](TROUBLESHOOTING.md) - 常见问题解决方案
 - 📖 [用户手册](USER_MANUAL.md) - 详细的使用说明
-- 📋 [配置说明](APPLICATION_PROPERTIES_GUIDE.md) - 配置文件详解
 - 🤖 [AI Provider 指南](AI_PROVIDER_GUIDE.md) - AI 模型切换指南
+- 📋 [配置说明](APPLICATION_PROPERTIES_GUIDE.md) - 配置文件详解
+
+## 🎯 版本信息
+
+当前版本：**v0.0.1**
+
+版本信息会自动显示在 UI 右下角，包含：
+- 版本号
+- 构建时间
+- Git 提交信息（如果可用）
+
+详见 [版本管理指南](VERSION_MANAGEMENT_GUIDE.md)
 
 ## AI 模型支持
 
@@ -69,15 +88,131 @@ $env:DASHSCOPE_API_KEY="your-api-key"
 export MONGODB_URI="mongodb://localhost:27017/devflow"
 export DASHSCOPE_API_KEY="your-api-key"
 
-# 4. 在父 pom 目录执行构建
-mvn clean package
+# 4. 构建项目
+# 方式 1: 使用快速启动脚本（推荐）
+.\devflow.ps1 build         # Windows
+./devflow.sh build          # Linux/Mac
+
+# 方式 2: 直接使用部署脚本
+deploy\scripts\build.ps1    # Windows
+deploy/scripts/build.sh     # Linux/Mac
+
+# 方式 3: 手动构建
+mvn clean package -DskipTests
 
 # 5. 运行应用
-java -jar backend/target/backend-0.0.1.jar
+# 方式 1: 使用快速启动脚本（推荐）
+.\devflow.ps1 start         # Windows
+./devflow.sh start          # Linux/Mac
+
+# 方式 2: 直接使用部署脚本
+deploy\scripts\start-prod.ps1   # Windows
+deploy/scripts/start-prod.sh    # Linux/Mac
+
+# 方式 3: 手动启动
+java -jar backend/target/devflow.jar
 
 # 6. 访问应用
 # http://localhost:8099
 ```
+
+## 📦 快速打包部署
+
+### 方式 1: 使用快速启动脚本（推荐）
+
+项目根目录提供了便捷的启动脚本：
+
+```powershell
+# Windows
+.\devflow.ps1 build                    # 打包
+.\devflow.ps1 build -Version 1.0.0     # 指定版本打包
+.\devflow.ps1 start                    # 启动
+.\devflow.ps1 status                   # 状态检查
+.\devflow.ps1 stop                     # 停止
+.\devflow.ps1 restart                  # 重启
+.\devflow.ps1 help                     # 帮助
+
+# Linux/Mac
+chmod +x devflow.sh                    # 添加执行权限（首次）
+./devflow.sh build                     # 打包
+./devflow.sh build 1.0.0               # 指定版本打包
+./devflow.sh start                     # 启动
+./devflow.sh stop                      # 停止
+./devflow.sh help                      # 帮助
+```
+
+### 方式 2: 直接使用部署脚本
+
+所有脚本位于 `deploy/scripts/` 目录：
+
+#### Windows
+```powershell
+# 进入脚本目录
+cd deploy\scripts
+
+# 使用当前版本打包
+.\build.ps1
+
+# 指定版本号打包
+.\build.ps1 -Version 1.0.0
+```
+
+#### Linux/Mac
+```bash
+# 进入脚本目录
+cd deploy/scripts
+
+# 添加执行权限（首次）
+chmod +x *.sh
+
+# 打包
+./build.sh
+
+# 指定版本号
+./build.sh 1.0.0
+```
+
+详见 [打包脚本使用指南](deploy/docs/BUILD_SCRIPTS_GUIDE.md)
+
+## 🚀 生产环境部署
+
+### Windows
+```powershell
+# 进入脚本目录
+cd deploy\scripts
+
+# 编辑配置（首次使用）
+notepad start-prod.ps1
+
+# 启动应用
+.\start-prod.ps1
+
+# 检查状态
+.\status.ps1
+
+# 停止应用
+.\stop.ps1
+```
+
+### Linux/Mac
+```bash
+# 进入脚本目录
+cd deploy/scripts
+
+# 编辑配置（首次使用）
+vi start-prod.sh
+
+# 添加执行权限
+chmod +x *.sh
+
+# 启动应用
+./start-prod.sh
+
+# 停止应用
+./stop.sh
+```
+
+详见 [快速部署指南](deploy/docs/DEPLOYMENT_QUICK_START.md)
 
 ## Docker 快速部署
 
