@@ -117,6 +117,7 @@ public class UserStoryServiceImpl implements UserStoryService {
     public List<UserStoryResponse> getAllUserStories() {
         logger.debug("Fetching all user stories");
         return userStoryRepository.findAll().stream()
+        .sorted((a, b) -> b.getUpdatedAt().compareTo(a.getUpdatedAt()))
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
@@ -125,6 +126,7 @@ public class UserStoryServiceImpl implements UserStoryService {
     public List<UserStoryResponse> getUserStoriesByProjectId(String projectId) {
         logger.debug("Fetching user stories for project: {}", projectId);
         return userStoryRepository.findByProjectId(projectId).stream()
+        .sorted((a, b) -> b.getUpdatedAt().compareTo(a.getUpdatedAt()))
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
@@ -133,6 +135,7 @@ public class UserStoryServiceImpl implements UserStoryService {
     public List<UserStoryResponse> getUserStoriesByOwnerId(String ownerId) {
         logger.debug("Fetching user stories for owner: {}", ownerId);
         return userStoryRepository.findByOwnerId(ownerId).stream()
+        .sorted((a, b) -> b.getUpdatedAt().compareTo(a.getUpdatedAt()))
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
@@ -141,6 +144,7 @@ public class UserStoryServiceImpl implements UserStoryService {
     public List<UserStoryResponse> getUserStoriesByStatus(String status) {
         logger.debug("Fetching user stories with status: {}", status);
         return userStoryRepository.findByStatus(status).stream()
+        .sorted((a, b) -> b.getUpdatedAt().compareTo(a.getUpdatedAt()))
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
