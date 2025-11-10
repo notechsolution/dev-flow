@@ -81,7 +81,13 @@ axiosApi.interceptors.response.use((response) => {
             return Promise.reject(error);
         }
         console.log('unauthorized request found', error)
-        return router.push('/landing');
+        ElNotification({
+            title: 'Session Expired',
+            message: 'Your session has expired. Please login again.',
+            type: 'warning',
+            duration: 3000,
+        })
+        return router.push('/login');
     } else {
         console.log('err', error)
         ElNotification({

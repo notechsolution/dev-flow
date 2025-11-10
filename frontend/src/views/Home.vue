@@ -133,11 +133,16 @@ export default defineComponent({
             router.push({path: '/login'})
         }
         onMounted(async () => {
-            const loggedInUserResponse = await userApi.getLoggedInUser();
-            if (!loggedInUserResponse.data) {
-                await router.push({path: '/login'})
-            } else {
-                store.login(loggedInUserResponse.data.username, loggedInUserResponse.data.role, loggedInUserResponse.data.projectIds)
+            try {
+                const loggedInUserResponse = await userApi.getLoggedInUser();
+                if (!loggedInUserResponse.data) {
+                    await router.push({path: '/login'})
+                } else {
+                    store.login(loggedInUserResponse.data.username, loggedInUserResponse.data.role, loggedInUserResponse.data.projectIds)
+                }
+            } catch (error) {
+                // Error will be handled by global interceptor, which will redirect to /login
+                console.log('Failed to get logged in user, redirecting to login page')
             }
         })
         return {
