@@ -384,6 +384,19 @@ export default {
         return axiosApi.delete(`/user-stories/${id}`, getHeaders());
     },
     
+    // Download batch import template
+    downloadBatchImportTemplate(): Promise<AxiosResponse<Blob>> {
+        return axiosApi.get('/user-stories/batch-import/template', {
+            ...getHeaders(),
+            responseType: 'blob'
+        });
+    },
+    
+    // Batch import user stories
+    batchImportUserStories(userStories: CreateUserStoryRequest[]): Promise<AxiosResponse<{ success: boolean; message: string; data: any }>> {
+        return axiosApi.post('/user-stories/batch-import', { userStories }, getHeaders());
+    },
+    
     // User Management API methods
     createUser(request: CreateUserRequest): Promise<AxiosResponse<UserDetailResponse>> {
         return axiosApi.post('/users', request, getHeaders());

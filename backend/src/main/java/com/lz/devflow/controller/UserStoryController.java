@@ -220,6 +220,72 @@ public class UserStoryController {
     }
     
     /**
+     * Download batch import template
+     */
+    @GetMapping("/batch-import/template")
+    @PreAuthorize("hasAnyRole(T(com.lz.devflow.constant.UserRole).USER.name(), T(com.lz.devflow.constant.UserRole).ADMIN.name(), T(com.lz.devflow.constant.UserRole).OPERATOR.name())")
+    public ResponseEntity<?> downloadBatchImportTemplate() {
+        logger.info("Downloading batch import template");
+        
+        try {
+            org.springframework.core.io.Resource resource = new org.springframework.core.io.ClassPathResource("storyTemplate.xlsx");
+            
+            if (!resource.exists()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "success", false,
+                    "message", "Template file not found"
+                ));
+            }
+            
+            return ResponseEntity.ok()
+                    .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"user_story_template.xlsx\"")
+                    .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    .body(resource);
+        } catch (Exception e) {
+            logger.error("Error downloading template", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "success", false,
+                "message", "Failed to download template: " + e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * Batch import user stories
+     */
+    @PostMapping("/batch-import")
+    @PreAuthorize("hasAnyRole(T(com.lz.devflow.constant.UserRole).USER.name(), T(com.lz.devflow.constant.UserRole).ADMIN.name(), T(com.lz.devflow.constant.UserRole).OPERATOR.name())")
+    public ResponseEntity<?> batchImportUserStories(@RequestBody Map<String, List<CreateUserStoryRequest>> payload) {
+        logger.info("Batch importing user stories");
+        
+        try {
+            List<CreateUserStoryRequest> userStories = payload.get("userStories");
+            
+            if (userStories == null || userStories.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "success", false,
+                    "message", "No user stories provided"
+                ));
+            }
+            
+            String currentUserId = getCurrentUserId();
+            List<UserStoryResponse> responses = userStoryService.batchCreateUserStories(userStories, currentUserId);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "success", true,
+                "message", String.format("Successfully imported %d user stories", responses.size()),
+                "data", responses
+            ));
+        } catch (Exception e) {
+            logger.error("Error batch importing user stories", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "success", false,
+                "message", "Failed to batch import user stories: " + e.getMessage()
+            ));
+        }
+    }
+    
+    /**
      * Get current authenticated user's ID
      */
     private String getCurrentUserId() {

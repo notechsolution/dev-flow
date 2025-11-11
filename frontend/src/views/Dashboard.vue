@@ -2,8 +2,9 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Refresh, Link } from '@element-plus/icons-vue'
+import { Plus, Search, Refresh, Link, Upload, Download } from '@element-plus/icons-vue'
 import aiApi, { UserStoryResponse } from '@/api/backend-api'
+import * as XLSX from 'xlsx'
 
 const router = useRouter()
 
@@ -100,6 +101,199 @@ const createUserStory = () => {
     router.push('/requirement/UserStoryCreation')
 }
 
+// Batch import dialog
+const batchImportDialogVisible = ref(false)
+const importLoading = ref(false)
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const selectedFile = ref<File | null>(null)
+
+const openBatchImportDialog = () => {
+    batchImportDialogVisible.value = true
+    selectedFile.value = null
+}
+
+const handleFileSelect = (event: Event) => {
+    const target = event.target as HTMLInputElement
+    if (target.files && target.files.length > 0) {
+        selectedFile.value = target.files[0]
+    }
+}
+
+const downloadTemplate = async () => {
+    try {
+        const response = await aiApi.downloadBatchImportTemplate()
+        
+        // Create a blob from the response
+        const blob = new Blob([response.data], { 
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        })
+        
+        // Create a download link
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = 'user_story_template.xlsx'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        
+        ElMessage.success('模板下载成功')
+    } catch (error) {
+        console.error('Failed to download template:', error)
+        ElMessage.error('模板下载失败')
+    }
+}
+
+const uploadBatchUserStories = async () => {
+    if (!selectedFile.value) {
+        ElMessage.warning('请选择要上传的 Excel 文件')
+        return
+    }
+    
+    importLoading.value = true
+    
+    try {
+        // Read Excel file
+        const data = await readExcelFile(selectedFile.value)
+        
+        if (!data || data.length === 0) {
+            ElMessage.error('Excel 文件为空或格式不正确')
+            importLoading.value = false
+            return
+        }
+        
+        // Validate and transform data
+        const userStories = parseExcelData(data)
+        
+        if (userStories.length === 0) {
+            ElMessage.error('没有有效的用户故事数据')
+            importLoading.value = false
+            return
+        }
+        
+        // Call backend API to batch create user stories
+        const response = await aiApi.batchImportUserStories(userStories)
+        
+        if (response.data.success) {
+            ElMessage.success(`成功导入 ${userStories.length} 个 User Story`)
+            batchImportDialogVisible.value = false
+            selectedFile.value = null
+            loadUserStories()
+        } else {
+            ElMessage.error(response.data.message || '批量导入失败')
+        }
+    } catch (error: any) {
+        console.error('Batch import error:', error)
+        ElMessage.error(error.response?.data?.message || '批量导入失败')
+    } finally {
+        importLoading.value = false
+    }
+}
+
+const readExcelFile = (file: File): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        
+        reader.onload = (e) => {
+            try {
+                const data = e.target?.result
+                const workbook = XLSX.read(data, { type: 'binary' })
+                const firstSheetName = workbook.SheetNames[0]
+                const worksheet = workbook.Sheets[firstSheetName]
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+                resolve(jsonData)
+            } catch (error) {
+                reject(error)
+            }
+        }
+        
+        reader.onerror = (error) => {
+            reject(error)
+        }
+        
+        reader.readAsBinaryString(file)
+    })
+}
+
+const parseExcelData = (data: any[]): any[] => {
+    const userStories: any[] = []
+    
+    console.log('Excel data:', data)
+    // Skip header row (index 0)
+    for (let i = 1; i < data.length; i++) {
+        const row = data[i]
+        
+        // Skip empty rows
+        if (!row || row.length === 0 || !row[0]) {
+            continue
+        }
+        
+        // Extract fields based on column index
+        const product = row[0]?.toString().trim() || ''          // 所属产品
+        const platform = row[1]?.toString().trim() || ''         // 平台/分支
+        const module = row[2]?.toString().trim() || ''           // 所属模块
+        const plan = row[3]?.toString().trim() || ''             // 所属计划
+        const source = row[4]?.toString().trim() || ''           // 来源
+        const sourceNote = row[5]?.toString().trim() || ''       // 来源备注
+        const title = row[6]?.toString().trim() || ''            // 研发需求名称
+        const description = row[7]?.toString().trim() || ''      // 描述
+        const acceptanceCriteria = row[8]?.toString().trim() || '' // 验收标准
+        const keywords = row[9]?.toString().trim() || ''         // 关键词
+        
+        // Validate required fields: product, title, description
+        if (!product) {
+            console.warn(`Row ${i + 1}: Missing required field '所属产品', skipping...`)
+            continue
+        }
+        if (!title) {
+            console.warn(`Row ${i + 1}: Missing required field '研发需求名称', skipping...`)
+            continue
+        }
+        if (!description) {
+            console.warn(`Row ${i + 1}: Missing required field '描述', skipping...`)
+            continue
+        }
+        
+        // Find project ID by product name
+        const project = projects.value.find(p => p.name === product)
+        if (!project) {
+            console.warn(`Row ${i + 1}: Product '${product}' not found, skipping...`)
+            continue
+        }
+        
+        // Build tags array
+        const tags: string[] = []
+        if (platform) tags.push(`平台:${platform}`)
+        if (module) tags.push(`模块:${module}`)
+        if (plan) tags.push(`计划:${plan}`)
+        if (source) tags.push(`来源:${source}`)
+        if (keywords) {
+            keywords.split(',').forEach((k: string) => tags.push(k.trim()))
+        }
+        
+        // Create user story object
+        const userStory = {
+            projectId: project.id,
+            title: title,
+            originalRequirement: description,
+            acceptanceCriteria: acceptanceCriteria || undefined,
+            tags: tags.length > 0 ? tags : undefined,
+            status: 'BACKLOG',
+            priority: 'MEDIUM'
+        }
+        
+        // Add source note if provided
+        if (sourceNote) {
+            userStory.originalRequirement += `\n\n来源备注: ${sourceNote}`
+        }
+        
+        userStories.push(userStory)
+    }
+    
+    return userStories
+}
+
 const viewUserStory = (row: UserStoryResponse) => {
     router.push(`/requirement/UserStoryDetail/${row.id}`)
 }
@@ -192,10 +386,16 @@ onMounted(() => {
     <div class="user-story-list">
         <div class="page-header">
             <h1>User Stories</h1>
-            <el-button type="primary" @click="createUserStory">
-                <el-icon><Plus /></el-icon>
-                创建 User Story
-            </el-button>
+            <div class="header-buttons">
+                <el-button type="success" @click="openBatchImportDialog">
+                    <el-icon><Upload /></el-icon>
+                    批量导入
+                </el-button>
+                <el-button type="primary" @click="createUserStory">
+                    <el-icon><Plus /></el-icon>
+                    创建 User Story
+                </el-button>
+            </div>
         </div>
 
         <!-- Filters -->
@@ -376,6 +576,65 @@ onMounted(() => {
                 />
             </div>
         </el-card>
+
+        <!-- Batch Import Dialog -->
+        <el-dialog
+            v-model="batchImportDialogVisible"
+            title="批量导入 User Stories"
+            width="600px"
+            :close-on-click-modal="false"
+        >
+            <div class="batch-import-content">
+                <el-alert
+                    title="导入说明"
+                    type="info"
+                    :closable="false"
+                    style="margin-bottom: 20px;"
+                >
+                    <p>1. 请先下载 Excel 模板</p>
+                    <p>2. 按照模板格式填写数据（所属产品、研发需求名称、描述为必填项）</p>
+                    <p>3. 上传填写好的 Excel 文件</p>
+                    <p>4. 系统将自动创建 User Stories，后续可在列表中逐一优化</p>
+                </el-alert>
+
+                <div class="template-download">
+                    <el-button type="primary" plain @click="downloadTemplate">
+                        <el-icon><Download /></el-icon>
+                        下载 Excel 模板
+                    </el-button>
+                </div>
+
+                <el-divider />
+
+                <div class="file-upload">
+                    <input
+                        ref="fileInputRef"
+                        type="file"
+                        accept=".xlsx,.xls"
+                        style="display: none"
+                        @change="handleFileSelect"
+                    />
+                    <el-button @click="fileInputRef?.click()">
+                        选择文件
+                    </el-button>
+                    <span v-if="selectedFile" style="margin-left: 10px; color: #67c23a;">
+                        {{ selectedFile.name }}
+                    </span>
+                </div>
+            </div>
+
+            <template #footer>
+                <el-button @click="batchImportDialogVisible = false">取消</el-button>
+                <el-button
+                    type="primary"
+                    :loading="importLoading"
+                    :disabled="!selectedFile"
+                    @click="uploadBatchUserStories"
+                >
+                    开始导入
+                </el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
@@ -399,6 +658,31 @@ onMounted(() => {
     font-size: 24px;
     font-weight: 600;
     margin: 0;
+}
+
+.header-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.batch-import-content {
+    padding: 10px 0;
+}
+
+.batch-import-content p {
+    margin: 8px 0;
+    line-height: 1.6;
+}
+
+.template-download {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.file-upload {
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
 }
 
 .filter-section {

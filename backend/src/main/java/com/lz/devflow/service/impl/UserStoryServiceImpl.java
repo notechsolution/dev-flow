@@ -277,4 +277,35 @@ public class UserStoryServiceImpl implements UserStoryService {
         
         return response;
     }
+    
+    @Override
+    public List<UserStoryResponse> batchCreateUserStories(List<CreateUserStoryRequest> requests, String currentUserId) {
+        logger.info("Batch creating {} user stories", requests.size());
+        
+        return requests.stream()
+                .map(request -> {
+                    try {
+                        // Create user story entity
+                        UserStory userStory = new UserStory();
+                        copyRequestToEntity(request, userStory);
+                        
+                        userStory.setCreatedBy(currentUserId);
+                        userStory.setUpdatedBy(currentUserId);
+                        userStory.setCreatedAt(LocalDateTime.now());
+                        userStory.setUpdatedAt(LocalDateTime.now());
+                        
+                        // Save without AI optimization or PMS sync
+                        UserStory saved = userStoryRepository.save(userStory);
+                        logger.info("User story created with ID: {}", saved.getId());
+                        
+                        return convertToResponse(saved);
+                    } catch (Exception e) {
+                        logger.error("Error creating user story: {}", request.getTitle(), e);
+                        // Skip this user story and continue with the rest
+                        return null;
+                    }
+                })
+                .filter(response -> response != null)
+                .collect(Collectors.toList());
+    }
 }

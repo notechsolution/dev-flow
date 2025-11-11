@@ -55,4 +55,9 @@ public interface UserStoryService {
      * Update user story status
      */
     UserStoryResponse updateUserStoryStatus(String id, String status, String currentUserId);
+    
+    /**
+     * Batch create user stories without AI optimization or Zentao sync
+     */
+    List<UserStoryResponse> batchCreateUserStories(List<CreateUserStoryRequest> requests, String currentUserId);
 }
