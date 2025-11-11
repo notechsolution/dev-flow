@@ -202,6 +202,7 @@ public class UserStoryServiceImpl implements UserStoryService {
         entity.setTags(request.getTags());
         entity.setOwnerId(request.getOwnerId());
         entity.setOriginalRequirement(request.getOriginalRequirement());
+        entity.setProjectContext(request.getProjectContext());
         entity.setOptimizedRequirement(request.getOptimizedRequirement());
         entity.setUserStory(request.getUserStory());
         entity.setAcceptanceCriteria(request.getAcceptanceCriteria());
@@ -248,6 +249,7 @@ public class UserStoryServiceImpl implements UserStoryService {
         response.setOwnerId(entity.getOwnerId());
         response.setStoryId(entity.getStoryId());
         response.setOriginalRequirement(entity.getOriginalRequirement());
+        response.setProjectContext(entity.getProjectContext());
         response.setOptimizedRequirement(entity.getOptimizedRequirement());
         response.setUserStory(entity.getUserStory());
         response.setAcceptanceCriteria(entity.getAcceptanceCriteria());

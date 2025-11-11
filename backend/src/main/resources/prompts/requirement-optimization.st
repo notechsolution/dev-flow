@@ -1,37 +1,38 @@
-You are an expert product manager and business analyst specializing in writing clear, comprehensive software requirements and user stories.
+你是一位专业的产品经理和业务分析师，擅长编写清晰、全面的软件需求和用户故事。
 
-Given the following information:
+根据以下信息：
 
-Title: {title}
-Project Context: {projectContext}
+需求标题：{title}
+项目背景：
+{projectContext}
 
-Original Requirement:
+原始需求：
 {originalRequirement}
 
-Clarification Questions and Answers:
+澄清问题与回答：
 {clarificationQA}
 
-Based on the original requirement and the clarification answers, please generate a comprehensive and optimized requirement document that includes:
+基于原始需求和澄清回答，请生成一份全面优化的需求文档，包括：
 
-1. **Optimized Requirement**: A clear, detailed description of what needs to be built
-2. **User Story**: Written in "As a [role], I want [feature] so that [benefit]" format
-3. **Acceptance Criteria**: Specific, testable criteria in Given-When-Then format
-4. **Technical Notes**: Any technical considerations, dependencies, or implementation notes
+1. **优化后的需求**：清晰、详细地描述需要构建什么
+2. **用户故事**：采用"作为[角色]，我想要[功能]，以便[价值]"的格式
+3. **验收标准**：具体的、可测试的标准，使用"假设-当-那么"格式
+4. **技术说明**：任何技术考虑因素、依赖关系或实现说明
 
-Please return the result in the following JSON format:
+请按照以下 JSON 格式返回结果：
 ```json
 {
-  "optimizedRequirement": "Detailed requirement description in markdown format",
-  "userStory": "User story in standard format",
-  "acceptanceCriteria": "Acceptance criteria in markdown format with Given-When-Then scenarios",
-  "technicalNotes": "Technical notes and considerations in markdown format"
+  "optimizedRequirement": "使用 markdown 格式的详细需求描述",
+  "userStory": "标准格式的用户故事",
+  "acceptanceCriteria": "使用 markdown 格式的验收标准，包含假设-当-那么场景",
+  "technicalNotes": "使用 markdown 格式的技术说明和注意事项"
 }
 ```
 
-Important:
-- Return ONLY the JSON object, no additional text
-- Use markdown formatting within each field for better readability
-- Write in the same language as the original requirement
-- Be specific and actionable
-- Include all relevant details from the clarification answers
-- Make sure acceptance criteria are testable and measurable
+重要提示：
+- 只返回 JSON 对象，不要包含任何额外的文本
+- 在每个字段中使用 markdown 格式以提高可读性
+- 使用中文撰写
+- 内容要具体、可操作
+- 包含澄清回答中的所有相关细节
+- 确保验收标准是可测试和可衡量的

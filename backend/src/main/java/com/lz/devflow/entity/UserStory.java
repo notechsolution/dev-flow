@@ -28,6 +28,9 @@ public class UserStory implements Serializable {
     // Original requirement from user
     private String originalRequirement;
     
+    // Business context to help AI better understand the requirement
+    private String projectContext;
+    
     // Clarification questions and answers
     private List<ClarificationQA> clarificationQAs;
     
@@ -166,6 +169,14 @@ public class UserStory implements Serializable {
     
     public void setOriginalRequirement(String originalRequirement) {
         this.originalRequirement = originalRequirement;
+    }
+    
+    public String getProjectContext() {
+        return projectContext;
+    }
+    
+    public void setProjectContext(String projectContext) {
+        this.projectContext = projectContext;
     }
     
     public List<ClarificationQA> getClarificationQAs() {

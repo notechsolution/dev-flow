@@ -22,6 +22,9 @@ public class CreateUserStoryRequest {
     @NotBlank(message = "Original requirement is required")
     private String originalRequirement;
     
+    // Business context to help AI better understand the requirement
+    private String projectContext;
+    
     private List<ClarificationQA> clarificationQAs;
     
     private String optimizedRequirement;
@@ -125,6 +128,14 @@ public class CreateUserStoryRequest {
     
     public void setOriginalRequirement(String originalRequirement) {
         this.originalRequirement = originalRequirement;
+    }
+    
+    public String getProjectContext() {
+        return projectContext;
+    }
+    
+    public void setProjectContext(String projectContext) {
+        this.projectContext = projectContext;
     }
     
     public List<ClarificationQA> getClarificationQAs() {

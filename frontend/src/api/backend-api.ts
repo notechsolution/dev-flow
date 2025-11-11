@@ -177,6 +177,7 @@ export interface CreateUserStoryRequest {
     ownerId?: string;
     storyId?: string;
     originalRequirement: string;
+    projectContext?: string;  // Business context to help AI better understand the requirement
     clarificationQAs?: Array<{
         questionId: string;
         question: string;
@@ -198,6 +199,7 @@ export interface UserStoryResponse {
     storyId?: string;  // ID from external project management system (e.g., Zentao)
     tags?: string[];
     originalRequirement: string;
+    projectContext?: string;  // Business context to help AI better understand the requirement
     clarificationQAs?: Array<{
         questionId: string;
         question: string;

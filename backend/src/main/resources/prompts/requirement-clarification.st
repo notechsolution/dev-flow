@@ -1,35 +1,37 @@
-You are an expert business analyst helping to clarify software requirements. 
+你是一位专业的业务分析师，负责帮助澄清软件需求。
 
-Given the following requirement information:
+根据以下需求信息：
 
-Title: {title}
-Project Context: {projectContext}
-Original Requirement:
+需求标题：{title}
+项目背景：
+{projectContext}
+
+原始需求：
 {requirement}
 
-Please analyze this requirement and generate 5-8 clarification questions that will help better understand and refine the requirement. 
+请分析这个需求，并生成 5-8 个澄清问题，以便更好地理解和细化需求。
 
-The questions should cover the following categories:
-1. Users & Roles - Who will use this feature? What are their roles?
-2. Goals & Outcomes - What are the expected outcomes? Success criteria?
-3. Business Rules - What constraints or rules must be followed?
-4. Data & Interface - What data is needed? How will users interact?
-5. Non-functional Requirements - Performance, security, scalability needs?
+问题应该涵盖以下类别：
+1. 用户与角色 - 谁会使用这个功能？他们的角色是什么？
+2. 目标与成果 - 预期的成果是什么？成功标准是什么？
+3. 业务规则 - 需要遵循哪些约束或规则？
+4. 数据与交互 - 需要哪些数据？用户如何交互？
+5. 非功能性需求 - 性能、安全、可扩展性方面的需求？
 
-Please return the questions in the following JSON format:
+请按照以下 JSON 格式返回问题：
 ```json
 [
   {
     "id": "q1",
-    "question": "The actual question text",
-    "category": "Category name"
+    "question": "具体的问题文本",
+    "category": "类别名称"
   },
   ...
 ]
 ```
 
-Important: 
-- Return ONLY the JSON array, no additional text or explanation
-- Each question should be clear, specific, and actionable
-- Questions should be in the same language as the original requirement
-- Focus on aspects that are unclear or missing in the original requirement
+重要提示：
+- 只返回 JSON 数组，不要包含任何额外的文本或解释
+- 每个问题都应该清晰、具体、可操作
+- 问题应该使用中文
+- 重点关注原始需求中不清楚或缺失的方面

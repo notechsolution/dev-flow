@@ -1,17 +1,17 @@
 <template>
     <div class="user-story-creation">
         <div class="page-header">
-            <h1>{{ isEditMode ? '编辑 User Story' : 'Create User Story' }}</h1>
+            <h1>{{ isEditMode ? '编辑需求' : '创建需求' }}</h1>
         </div>
 
         <!-- Meta Data Section - Only show in first step -->
         <el-card v-if="currentStep === 1" class="meta-section">
             <el-row :gutter="20">
                 <el-col :span="6">
-                    <el-form-item label="Project" required>
+                    <el-form-item label="项目" required>
                         <el-select
                             v-model="userStory.projectId"
-                            placeholder="Select Project"
+                            placeholder="请选择项目"
                             style="width: 100%"
                             filterable
                         >
@@ -26,14 +26,14 @@
                 </el-col>
 
                 <el-col :span="8">
-                    <el-form-item label="Tags">
+                    <el-form-item label="标签">
                         <el-select
                             v-model="userStory.tags"
                             multiple
                             filterable
                             allow-create
                             default-first-option
-                            placeholder="Select or create tags"
+                            placeholder="请选择或创建标签"
                             style="width: 100%"
                         >
                             <el-option
@@ -47,10 +47,10 @@
                 </el-col>
 
                 <el-col :span="6">
-                    <el-form-item label="Owner">
+                    <el-form-item label="负责人">
                         <el-select
                             v-model="userStory.ownerId"
-                            placeholder="Select Owner"
+                            placeholder="请选择负责人"
                             style="width: 100%"
                             filterable
                         >
@@ -72,13 +72,31 @@
             </el-row>
             <el-row :gutter="20">
                 <el-col :span="20">
-                    <el-form-item label="Title" required>
+                    <el-form-item label="需求标题" required>
                         <el-input
                             v-model="userStory.title"
-                            placeholder="Enter user story title"
+                            placeholder="请输入用户故事标题"
                             maxlength="100"
                             show-word-limit
                         />
+                    </el-form-item>
+                </el-col>
+            </el-row>
+            <el-row :gutter="20">
+                <el-col :span="20">
+                    <el-form-item label="业务背景">
+                        <el-input
+                            v-model="userStory.projectContext"
+                            type="textarea"
+                            :rows="3"
+                            placeholder="（可选）请描述项目的业务背景、目标用户、业务场景等信息，帮助 AI 更好地理解需求..."
+                            maxlength="500"
+                            show-word-limit
+                        />
+                        <div class="field-hint">
+                            <el-icon><InfoFilled /></el-icon>
+                            <span>提供业务背景可以帮助 AI 生成更准确、更符合实际场景的澄清问题和优化建议</span>
+                        </div>
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -273,7 +291,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Loading } from '@element-plus/icons-vue'
+import { Loading, InfoFilled } from '@element-plus/icons-vue'
 import MilkdownEditor from '@/components/MilkdownEditor.vue'
 import { MilkdownProvider } from "@milkdown/vue"
 import aiApi, { ClarificationQuestion, QuestionAnswer } from '@/api/backend-api'
@@ -302,6 +320,7 @@ const userStory = reactive({
     ownerId: '',
     storyId: '', // External PM system ID
     originalRequirement: '',
+    projectContext: '', // Business context for better AI understanding
     description: '',
     status: 'BACKLOG',
     priority: 'MEDIUM'
@@ -376,6 +395,7 @@ const loadUserStory = async () => {
                 ownerId: story.ownerId || '',
                 storyId: story.storyId || '',
                 originalRequirement: story.originalRequirement || '',
+                projectContext: story.projectContext || '',
                 status: story.status || 'BACKLOG',
                 priority: story.priority || 'MEDIUM'
             })
@@ -494,7 +514,7 @@ const goToClarification = async () => {
         const response = await aiApi.clarifyRequirement({
             originalRequirement: userStory.originalRequirement,
             title: userStory.title,
-            projectContext: projects.value.find(p => p.id === userStory.projectId)?.name || '',
+            projectContext: userStory.projectContext || '',
         })
 
         if (response.data.success) {
@@ -561,7 +581,7 @@ const goToOptimization = async () => {
         const response = await aiApi.optimizeRequirement({
             originalRequirement: userStory.originalRequirement,
             title: userStory.title,
-            projectContext: projects.value.find(p => p.id === userStory.projectId)?.name || '',
+            projectContext: userStory.projectContext || '',
             clarificationAnswers
         })
 
@@ -614,6 +634,7 @@ const saveUserStory = async () => {
             ownerId: userStory.ownerId,
             storyId: userStory.storyId,
             originalRequirement: userStory.originalRequirement,
+            projectContext: userStory.projectContext,
             clarificationQAs: clarificationQuestions.value.map(q => ({
                 questionId: q.id,
                 question: q.question,
@@ -847,6 +868,21 @@ onMounted(async () => {
 :deep(.el-form-item__label) {
     font-weight: 600;
     color: #606266;
+}
+
+.field-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #909399;
+    line-height: 1.5;
+}
+
+.field-hint .el-icon {
+    font-size: 14px;
+    color: #409eff;
 }
 
 :deep(.el-select .el-input__inner) {

@@ -11,6 +11,8 @@ public class RequirementClarificationRequest {
     private String originalRequirement;
     
     private String title;
+    
+    // Business context to help AI better understand the requirement
     private String projectContext;
 
     // Constructors

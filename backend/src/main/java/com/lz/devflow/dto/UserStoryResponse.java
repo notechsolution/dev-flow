@@ -18,6 +18,10 @@ public class UserStoryResponse {
     private String storyId;
     
     private String originalRequirement;
+    
+    // Business context to help AI better understand the requirement
+    private String projectContext;
+    
     private List<ClarificationQA> clarificationQAs;
     
     private String optimizedRequirement;
@@ -134,6 +138,14 @@ public class UserStoryResponse {
     
     public void setOriginalRequirement(String originalRequirement) {
         this.originalRequirement = originalRequirement;
+    }
+    
+    public String getProjectContext() {
+        return projectContext;
+    }
+    
+    public void setProjectContext(String projectContext) {
+        this.projectContext = projectContext;
     }
     
     public List<ClarificationQA> getClarificationQAs() {
