@@ -5,7 +5,7 @@
       <el-button 
         v-if="canCreateProject" 
         type="primary" 
-        @click="showCreateDialog = true"
+        @click="createProject"
       >
         <el-icon><Plus /></el-icon>
         创建项目
@@ -113,161 +113,6 @@
       </el-table-column>
     </el-table>
 
-    <!-- Create/Edit Dialog -->
-    <el-dialog 
-      :title="dialogMode === 'create' ? '创建项目' : '编辑项目'" 
-      v-model="showCreateDialog"
-      width="700px"
-      :close-on-click-modal="false"
-    >
-      <el-form 
-        ref="projectFormRef" 
-        :model="projectForm" 
-        :rules="projectRules" 
-        label-width="120px"
-      >
-        <el-form-item label="项目名称" prop="name">
-          <el-input v-model="projectForm.name" placeholder="请输入项目名称" />
-        </el-form-item>
-        
-        <el-form-item label="项目描述" prop="description">
-          <el-input 
-            v-model="projectForm.description" 
-            type="textarea" 
-            :rows="3" 
-            placeholder="请输入项目描述"
-          />
-        </el-form-item>
-
-        <el-form-item label="状态" prop="status" v-if="dialogMode === 'edit'">
-          <el-select v-model="projectForm.status" placeholder="选择项目状态">
-            <el-option label="活跃" value="ACTIVE" />
-            <el-option label="归档" value="ARCHIVED" />
-            <el-option label="暂停" value="PAUSED" />
-          </el-select>
-        </el-form-item>
-
-        <el-divider content-position="left">Git 仓库配置</el-divider>
-        
-        <el-form-item label="Git类型">
-          <el-select 
-            v-model="projectForm.gitRepository.type" 
-            placeholder="选择Git类型"
-            clearable
-          >
-          <el-option label="GitLab" value="GITLAB" />
-          <el-option label="GitHub" value="GITHUB" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="Base URL">
-          <el-input 
-            v-model="projectForm.gitRepository.baseUrl" 
-            placeholder="例如: https://github.com"
-          />
-        </el-form-item>
-
-        <el-form-item label="仓库ID">
-          <el-select
-            v-model="projectForm.gitRepository.repositoryIds"
-            multiple
-            filterable
-            allow-create
-            default-first-option
-            placeholder="输入仓库ID并按回车添加"
-            style="width: 100%"
-          >
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="Access Token">
-          <el-input 
-            v-model="projectForm.gitRepository.accessToken" 
-            type="password" 
-            show-password
-            placeholder="Git访问令牌"
-          />
-        </el-form-item>
-
-        <el-divider content-position="left">项目管理系统配置</el-divider>
-
-        <el-form-item label="系统类型">
-          <el-select 
-            v-model="projectForm.projectManagementSystem.type" 
-            placeholder="选择项目管理系统"
-            clearable
-          >
-            <el-option label="禅道" value="ZENTAO" />
-            <el-option label="Trello" value="TRELLO" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="系统ID">
-          <el-input 
-            v-model="projectForm.projectManagementSystem.systemId" 
-            placeholder="项目或Board ID"
-          />
-        </el-form-item>
-
-        <el-form-item label="Base URL">
-          <el-input 
-            v-model="projectForm.projectManagementSystem.baseUrl" 
-            placeholder="例如: https://yourcompany.atlassian.net"
-          />
-        </el-form-item>
-
-        <el-form-item label="Access Token">
-          <el-input 
-            v-model="projectForm.projectManagementSystem.accessToken" 
-            type="password" 
-            show-password
-            placeholder="系统访问令牌"
-          />
-        </el-form-item>
-
-        <el-divider content-position="left">团队成员</el-divider>
-
-        <el-form-item label="管理员">
-          <el-select 
-            v-model="projectForm.adminIds" 
-            multiple 
-            placeholder="选择项目管理员"
-            style="width: 100%"
-          >
-            <el-option 
-              v-for="user in availableUsers" 
-              :key="user.id" 
-              :label="user.username" 
-              :value="user.id"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="成员">
-          <el-select 
-            v-model="projectForm.memberIds" 
-            multiple 
-            placeholder="选择项目成员"
-            style="width: 100%"
-          >
-            <el-option 
-              v-for="user in availableUsers" 
-              :key="user.id" 
-              :label="user.username" 
-              :value="user.id"
-            />
-          </el-select>
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <el-button @click="showCreateDialog = false">取消</el-button>
-        <el-button type="primary" @click="submitProject" :loading="submitting">
-          {{ dialogMode === 'create' ? '创建' : '保存' }}
-        </el-button>
-      </template>
-    </el-dialog>
-
     <!-- View Project Dialog -->
     <el-dialog 
       title="项目详情" 
@@ -341,65 +186,30 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
-import { ElMessage, ElMessageBox, FormInstance } from 'element-plus';
+import { useRouter } from 'vue-router';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import api from '../api/backend-api';
 import type { 
   ProjectResponse, 
-  CreateProjectRequest, 
-  UpdateProjectRequest,
   UserManagementResponse 
 } from '../api/backend-api';
 import { userStore as useUserStore } from '../store/user';
 
 const userStore = useUserStore();
+const router = useRouter();
 
 // State
 const loading = ref(false);
-const submitting = ref(false);
-const showCreateDialog = ref(false);
 const showViewDialog = ref(false);
-const dialogMode = ref<'create' | 'edit'>('create');
 const projects = ref<ProjectResponse[]>([]);
 const currentProject = ref<ProjectResponse | null>(null);
-const availableUsers = ref<UserManagementResponse[]>([]);
-const projectFormRef = ref<FormInstance>();
 
 // Filters
 const filters = reactive({
   name: '',
   status: 'ACTIVE' 
 });
-
-// Form
-const defaultProjectForm = {
-  name: '',
-  description: '',
-  status: 'ACTIVE',
-  adminIds: [] as string[],
-  memberIds: [] as string[],
-  gitRepository: {
-    type: 'GITLAB',
-    baseUrl: '',
-    repositoryIds: [] as string[],
-    accessToken: ''
-  },
-  projectManagementSystem: {
-    type: 'ZENTAO',
-    systemId: '',
-    baseUrl: '',
-    accessToken: ''
-  }
-};
-
-const projectForm = reactive({ ...defaultProjectForm });
-
-// Validation rules
-const projectRules = {
-  name: [
-    { required: true, message: '请输入项目名称', trigger: 'blur' }
-  ]
-};
 
 // Computed
 const canCreateProject = computed(() => {
@@ -434,19 +244,14 @@ const loadProjects = async () => {
   }
 };
 
-const loadUsers = async () => {
-  try {
-    const response = await api.getUsers();
-    availableUsers.value = response.data.data;
-  } catch (error: any) {
-    console.error('Failed to load users:', error);
-  }
-};
-
 const resetFilters = () => {
   filters.name = '';
   filters.status = '';
   loadProjects();
+};
+
+const createProject = () => {
+  router.push('/projects/new');
 };
 
 const viewProject = (project: ProjectResponse) => {
@@ -455,97 +260,14 @@ const viewProject = (project: ProjectResponse) => {
 };
 
 const editProject = (project: ProjectResponse) => {
-  dialogMode.value = 'edit';
-  currentProject.value = project;
-  
-  Object.assign(projectForm, {
-    name: project.name,
-    description: project.description || '',
-    status: project.status,
-    adminIds: project.adminIds || [],
-    memberIds: project.memberIds || [],
-    gitRepository: {
-      type: project.gitRepository?.type || '',
-      baseUrl: project.gitRepository?.baseUrl || '',
-      repositoryIds: project.gitRepository?.repositoryIds || [],
-      accessToken: '' // Don't populate token for security
-    },
-    projectManagementSystem: {
-      type: project.projectManagementSystem?.type || '',
-      systemId: project.projectManagementSystem?.systemId || '',
-      baseUrl: project.projectManagementSystem?.baseUrl || '',
-      accessToken: '' // Don't populate token for security
-    }
-  });
-  
-  showCreateDialog.value = true;
+  router.push(`/projects/edit/${project.id}`);
 };
 
 const editFromView = () => {
   showViewDialog.value = false;
   if (currentProject.value) {
-    editProject(currentProject.value);
+    router.push(`/projects/edit/${currentProject.value.id}`);
   }
-};
-
-const submitProject = async () => {
-  if (!projectFormRef.value) return;
-  
-  await projectFormRef.value.validate(async (valid) => {
-    if (!valid) return;
-    
-    submitting.value = true;
-    try {
-      const payload: CreateProjectRequest | UpdateProjectRequest = {
-        name: projectForm.name,
-        description: projectForm.description || undefined,
-        adminIds: projectForm.adminIds.length > 0 ? projectForm.adminIds : undefined,
-        memberIds: projectForm.memberIds.length > 0 ? projectForm.memberIds : undefined
-      };
-
-      if (dialogMode.value === 'edit') {
-        (payload as UpdateProjectRequest).status = projectForm.status;
-      }
-
-      // Add Git Repository if configured
-      if (projectForm.gitRepository.type) {
-        payload.gitRepository = {
-          type: projectForm.gitRepository.type,
-          baseUrl: projectForm.gitRepository.baseUrl || undefined,
-          repositoryIds: projectForm.gitRepository.repositoryIds.length > 0 
-            ? projectForm.gitRepository.repositoryIds 
-            : undefined,
-          accessToken: projectForm.gitRepository.accessToken || undefined
-        };
-      }
-
-      // Add Project Management System if configured
-      if (projectForm.projectManagementSystem.type) {
-        payload.projectManagementSystem = {
-          type: projectForm.projectManagementSystem.type,
-          systemId: projectForm.projectManagementSystem.systemId || undefined,
-          baseUrl: projectForm.projectManagementSystem.baseUrl || undefined,
-          accessToken: projectForm.projectManagementSystem.accessToken || undefined
-        };
-      }
-
-      if (dialogMode.value === 'create') {
-        await api.createProject(payload as CreateProjectRequest);
-        ElMessage.success('项目创建成功');
-      } else {
-        await api.updateProject(currentProject.value!.id, payload as UpdateProjectRequest);
-        ElMessage.success('项目更新成功');
-      }
-
-      showCreateDialog.value = false;
-      resetForm();
-      loadProjects();
-    } catch (error: any) {
-      ElMessage.error(error.response?.data?.message || '操作失败');
-    } finally {
-      submitting.value = false;
-    }
-  });
 };
 
 const deleteProject = (project: ProjectResponse) => {
@@ -568,11 +290,6 @@ const deleteProject = (project: ProjectResponse) => {
   }).catch(() => {
     // User cancelled
   });
-};
-
-const resetForm = () => {
-  Object.assign(projectForm, defaultProjectForm);
-  projectFormRef.value?.resetFields();
 };
 
 const formatDate = (dateStr: string) => {
@@ -601,7 +318,6 @@ const getStatusLabel = (status: string) => {
 // Lifecycle
 onMounted(() => {
   loadProjects();
-  loadUsers();
 });
 </script>
 

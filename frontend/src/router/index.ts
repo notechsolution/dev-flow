@@ -45,6 +45,14 @@ const routes = [
             {
                 path: "/projects",
                 component: () => import('@/views/ProjectManagement.vue')
+            },
+            {
+                path: "/projects/new",
+                component: () => import('@/views/ProjectForm.vue')
+            },
+            {
+                path: "/projects/edit/:id",
+                component: () => import('@/views/ProjectForm.vue')
             }
         ]
     },
