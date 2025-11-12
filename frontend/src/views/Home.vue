@@ -13,9 +13,20 @@
                     <h2 style="color: #409eff;font-size: 36px">Development Flow</h2>
                 </el-menu-item>
                 <div class="flex-grow"/>
-                <el-menu-item key="1" index="/dashboard">Welcome {{ store.username }}</el-menu-item>
-                <el-menu-item v-if="store.username !== '' && store.username !== null" @click="logout">Logout
-                </el-menu-item>
+                <el-sub-menu index="user-menu">
+                    <template #title>
+                        <el-icon><User /></el-icon>
+                        <span>{{ store.username }}</span>
+                    </template>
+                    <el-menu-item index="/profile">
+                        <el-icon><UserFilled /></el-icon>
+                        <span>个人中心</span>
+                    </el-menu-item>
+                    <el-menu-item @click="logout">
+                        <el-icon><SwitchButton /></el-icon>
+                        <span>退出登录</span>
+                    </el-menu-item>
+                </el-sub-menu>
             </el-menu>
         </el-header>
         <el-main class="p-0">
@@ -112,7 +123,7 @@ import router from "@/router";
 import {useRoute} from "vue-router";
 import backgroundImg from '../assets/img/banner_1.png'
 import {userStore} from "@/store/user";
-import {ChatDotSquare, DataAnalysis, DocumentCopy, HomeFilled, Money, Plus, Tools, User} from "@element-plus/icons-vue";
+import {ChatDotSquare, DataAnalysis, DocumentCopy, HomeFilled, Money, Plus, Tools, User, UserFilled, SwitchButton} from "@element-plus/icons-vue";
 import userApi from "@/api/user-api";
 import VersionInfo from "@/components/VersionInfo.vue";
 
@@ -138,7 +149,14 @@ export default defineComponent({
                 if (!loggedInUserResponse.data) {
                     await router.push({path: '/login'})
                 } else {
-                    store.login(loggedInUserResponse.data.username, loggedInUserResponse.data.role, loggedInUserResponse.data.projectIds)
+                    const user = loggedInUserResponse.data.user || loggedInUserResponse.data;
+                    store.login(
+                        user.id || '',
+                        user.username,
+                        user.email || '',
+                        user.role,
+                        user.projectIds || []
+                    )
                 }
             } catch (error) {
                 // Error will be handled by global interceptor, which will redirect to /login

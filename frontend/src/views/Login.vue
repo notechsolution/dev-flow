@@ -122,7 +122,8 @@ export default defineComponent({
                 })
 
                 if (response.data.success) {
-                    store.login(response.data.user.username, response.data.user.role, response.data.user.projectIds)
+                    const user = response.data.user;
+                    store.login(user.id || '', user.username, user.email || '', user.role, user.projectIds || [])
                     ElMessage.success('Login successful!')
                     router.push('/')
                 } else {

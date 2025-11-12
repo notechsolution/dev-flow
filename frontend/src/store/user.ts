@@ -4,21 +4,32 @@ import api from '../api/backend-api'
 
 export const userStore = defineStore("user", {
     state: () => ({
-        username: null,
-        role: null,
+        id: null as string | null,
+        username: null as string | null,
+        email: null as string | null,
+        role: null as string | null,
         projectIds: [] as string[]
     }),
     actions: {
-        login(username: any, role: any, projectIds: string[]): any {
+        login(id: string, username: string, email: string, role: string, projectIds: string[]): any {
+            this.id = id;
             this.username = username;
+            this.email = email;
             this.role = role;
-            this.projectIds = projectIds;
+            this.projectIds = projectIds || [];
+        },
+        updateProfile(email: string): void {
+            this.email = email;
         },
         logout(): any {
             return new Promise((resolve, reject) => {
                 api.logout()
                         .then(response => {
+                            this.id = null;
                             this.username = null;
+                            this.email = null;
+                            this.role = null;
+                            this.projectIds = [];
                             resolve(response);
                         })
                         .catch((error) => {
@@ -29,6 +40,8 @@ export const userStore = defineStore("user", {
         }
     },
     getters: {
-        getUsername: state => state.username
+        getUsername: state => state.username,
+        getUserId: state => state.id,
+        getEmail: state => state.email
     }
 })
