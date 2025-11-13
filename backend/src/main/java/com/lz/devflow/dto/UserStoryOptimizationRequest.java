@@ -20,6 +20,8 @@ public class UserStoryOptimizationRequest {
     
     private String additionalRequirements;
 
+    private String projectId;
+
     public UserStoryOptimizationRequest() {}
 
     public UserStoryOptimizationRequest(String description, String projectContext, String additionalRequirements) {
@@ -57,6 +59,12 @@ public class UserStoryOptimizationRequest {
     }
     public void setTitle(String title) {
         this.title = title;
+    }
+    public String getProjectId() {
+        return projectId;
+    }
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
     }
     
 }

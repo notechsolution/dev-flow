@@ -35,9 +35,13 @@
             v-model="projectForm.description" 
             type="textarea" 
             :rows="4" 
-            placeholder="请输入项目描述"
+             placeholder="请描述项目的业务背景、目标用户、业务场景等信息，帮助 AI 更好地理解需求..."
             clearable
           />
+          <div class="field-hint">
+                <el-icon><InfoFilled /></el-icon>
+                <span>提供业务背景可以帮助 AI 生成更准确、更符合实际场景的澄清问题和优化建议</span>
+            </div>
         </el-form-item>
 
         <el-form-item label="状态" prop="status" v-if="isEditMode">
@@ -434,5 +438,20 @@ onMounted(() => {
 :deep(.el-page-header__content) {
   display: flex;
   align-items: center;
+}
+
+.field-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #909399;
+    line-height: 1.5;
+}
+
+.field-hint .el-icon {
+    font-size: 14px;
+    color: #409eff;
 }
 </style>

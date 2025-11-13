@@ -82,24 +82,6 @@
                     </el-form-item>
                 </el-col>
             </el-row>
-            <el-row :gutter="20">
-                <el-col :span="20">
-                    <el-form-item label="业务背景">
-                        <el-input
-                            v-model="userStory.projectContext"
-                            type="textarea"
-                            :rows="3"
-                            placeholder="（可选）请描述项目的业务背景、目标用户、业务场景等信息，帮助 AI 更好地理解需求..."
-                            maxlength="500"
-                            show-word-limit
-                        />
-                        <div class="field-hint">
-                            <el-icon><InfoFilled /></el-icon>
-                            <span>提供业务背景可以帮助 AI 生成更准确、更符合实际场景的澄清问题和优化建议</span>
-                        </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
         </el-card>
 
         <!-- Step Indicator -->
@@ -365,7 +347,6 @@ const userStory = reactive({
     ownerId: '',
     storyId: '', // External PM system ID
     originalRequirement: '',
-    projectContext: '', // Business context for better AI understanding
     description: '',
     status: 'BACKLOG',
     priority: 'MEDIUM'
@@ -440,7 +421,6 @@ const loadUserStory = async () => {
                 ownerId: story.ownerId || '',
                 storyId: story.storyId || '',
                 originalRequirement: story.originalRequirement || '',
-                projectContext: story.projectContext || '',
                 status: story.status || 'BACKLOG',
                 priority: story.priority || 'MEDIUM'
             })
@@ -574,7 +554,6 @@ const generateClarificationQuestions = async () => {
         const response = await aiApi.clarifyRequirement({
             originalRequirement: userStory.originalRequirement,
             title: userStory.title,
-            projectContext: userStory.projectContext || '',
             projectId: userStory.projectId || undefined,
             promptTemplateId: clarificationTemplateId.value || undefined,
         })
@@ -648,7 +627,6 @@ const generateOptimization = async () => {
         const response = await aiApi.optimizeRequirement({
             originalRequirement: userStory.originalRequirement,
             title: userStory.title,
-            projectContext: userStory.projectContext || '',
             clarificationAnswers,
             projectId: userStory.projectId || undefined,
             promptTemplateId: optimizationTemplateId.value || undefined,

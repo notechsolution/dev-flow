@@ -1,9 +1,16 @@
 package com.lz.devflow.controller;
 
 import com.lz.devflow.dto.*;
+import com.lz.devflow.entity.Project;
 import com.lz.devflow.service.AIService;
+import com.lz.devflow.service.ProjectService;
+import com.lz.devflow.util.SecurityUtils;
+
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
+
+import java.security.Security;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +30,8 @@ public class AIController {
     @Resource
     private AIService aiService;
 
+    public ProjectService projectService;
+
     /**
      * Optimize user story description using AI
      * 
@@ -37,6 +46,9 @@ public class AIController {
         logger.info("Received user story optimization request");
         
         try {
+            String currentUserId = SecurityUtils.getCurrentUserId();
+            ProjectResponse project = projectService.getProjectById(request.getProjectId(),currentUserId);
+            request.setProjectContext(project.getDescription());
             UserStoryOptimizationResponse response = aiService.optimizeUserStory(request);
             
             if (response.isSuccess()) {
@@ -135,6 +147,9 @@ public class AIController {
         logger.info("Received requirement clarification request");
         
         try {
+            String currentUserId = SecurityUtils.getCurrentUserId();
+            ProjectResponse project = projectService.getProjectById(request.getProjectId(),currentUserId);
+            request.setProjectContext(project.getDescription());
             RequirementClarificationResponse response = aiService.generateClarificationQuestions(request);
             
             if (response.isSuccess()) {
