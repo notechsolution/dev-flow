@@ -148,6 +148,23 @@
                     </el-tag>
                 </div>
                 
+                <!-- Prompt Template Selector for Clarification -->
+                <PromptTemplateSelector
+                    v-if="!loadingClarification && clarificationQuestions.length === 0"
+                    type="REQUIREMENT_CLARIFICATION"
+                    :project-id="userStory.projectId"
+                    :user-id="userId"
+                    title="需求澄清提示词"
+                    @template-selected="onClarificationTemplateSelected"
+                />
+                
+                <!-- Generate Button -->
+                <div v-if="!loadingClarification && clarificationQuestions.length === 0" class="generate-button-container">
+                    <el-button type="primary" @click="generateClarificationQuestions">
+                        生成澄清问题
+                    </el-button>
+                </div>
+                
                 <div v-if="loadingClarification" class="loading-container">
                     <el-icon class="is-loading"><Loading /></el-icon>
                     <p>AI 正在分析您的需求并生成需要澄清的问题...</p>
@@ -216,12 +233,28 @@
                     </div>
                 </div>
                 
+                <!-- Prompt Template Selector for Optimization -->
+                <PromptTemplateSelector
+                    v-if="!loadingOptimization && !optimizationResult.optimizedRequirement"
+                    type="REQUIREMENT_OPTIMIZATION"
+                    :project-id="userStory.projectId"
+                    title="需求优化提示词"
+                    @template-selected="onOptimizationTemplateSelected"
+                />
+                
+                <!-- Generate Optimization Button -->
+                <div v-if="!loadingOptimization && !optimizationResult.optimizedRequirement" class="generate-button-container">
+                    <el-button type="primary" @click="generateOptimization">
+                        开始需求优化
+                    </el-button>
+                </div>
+                
                 <div v-if="loadingOptimization" class="loading-container">
                     <el-icon class="is-loading"><Loading /></el-icon>
                     <p>AI 正在优化您的需求...</p>
                 </div>
                 
-                <div v-else class="optimization-result">
+                <div v-else-if="optimizationResult.optimizedRequirement" class="optimization-result">
                     <el-tabs v-model="optimizationTab" type="card">
                         <el-tab-pane label="优化后的需求" name="optimized">
                             <MilkdownProvider>
@@ -293,8 +326,11 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Loading, InfoFilled } from '@element-plus/icons-vue'
 import MilkdownEditor from '@/components/MilkdownEditor.vue'
+import PromptTemplateSelector from '@/components/PromptTemplateSelector.vue'
 import { MilkdownProvider } from "@milkdown/vue"
 import aiApi, { ClarificationQuestion, QuestionAnswer } from '@/api/backend-api'
+// User ID from Pinia store
+import { userStore } from '@/store/user'
 
 const router = useRouter()
 const route = useRoute()
@@ -312,6 +348,15 @@ const loadingOptimization = ref(false)
 const generatingOptimization = ref(false)
 const saving = ref(false)
 
+// Prompt template state
+const clarificationTemplateId = ref<string | null>(null)
+const clarificationPromptContent = ref<string>('')
+const optimizationTemplateId = ref<string | null>(null)
+const optimizationPromptContent = ref<string>('')
+const userId = ref<string | null >(userStore().getUserId);
+
+console.log('User ID:', userId.value)
+console.log('user store:', userStore())
 // User story data
 const userStory = reactive({
     projectId: '',
@@ -489,6 +534,18 @@ const getQuestionTagType = (category: string) => {
     return tagTypes[category] || 'info'
 }
 
+// Prompt template handlers
+const onClarificationTemplateSelected = (templateId: string | null, content: string) => {
+    console.log('Selected template:', templateId, content)
+    clarificationTemplateId.value = templateId
+    clarificationPromptContent.value = content
+}
+
+const onOptimizationTemplateSelected = (templateId: string | null, content: string) => {
+    optimizationTemplateId.value = templateId
+    optimizationPromptContent.value = content
+}
+
 const goToClarification = async () => {
     if (!userStory.title.trim()) {
         ElMessage.warning('请输入标题')
@@ -506,7 +563,10 @@ const goToClarification = async () => {
         ElMessage.info('已有澄清问题，继续填写')
         return
     }
+}
 
+// Generate clarification questions (called after template is selected)
+const generateClarificationQuestions = async () => {
     loadingClarification.value = true
     
     try {
@@ -515,6 +575,8 @@ const goToClarification = async () => {
             originalRequirement: userStory.originalRequirement,
             title: userStory.title,
             projectContext: userStory.projectContext || '',
+            projectId: userStory.projectId || undefined,
+            promptTemplateId: clarificationTemplateId.value || undefined,
         })
 
         if (response.data.success) {
@@ -564,7 +626,12 @@ const goToOptimization = async () => {
         }
     }
 
-    currentStep.value = 3
+    currentStep.value = 3;
+    await generateOptimization();
+}
+
+// Generate optimization (called after template is selected)
+const generateOptimization = async () => {
     loadingOptimization.value = true
     generatingOptimization.value = true
 
@@ -582,7 +649,9 @@ const goToOptimization = async () => {
             originalRequirement: userStory.originalRequirement,
             title: userStory.title,
             projectContext: userStory.projectContext || '',
-            clarificationAnswers
+            clarificationAnswers,
+            projectId: userStory.projectId || undefined,
+            promptTemplateId: optimizationTemplateId.value || undefined,
         })
 
         if (response.data.success) {
@@ -597,12 +666,10 @@ const goToOptimization = async () => {
             ElMessage.success('需求优化完成')
         } else {
             ElMessage.error(response.data.message || '需求优化失败')
-            currentStep.value = 2
         }
     } catch (error) {
         ElMessage.error('需求优化失败')
         console.error('Optimization error:', error)
-        currentStep.value = 2
     } finally {
         loadingOptimization.value = false
         generatingOptimization.value = false
@@ -878,6 +945,11 @@ onMounted(async () => {
     font-size: 12px;
     color: #909399;
     line-height: 1.5;
+}
+
+.generate-button-container {
+    margin: 20px 0;
+    text-align: center;
 }
 
 .field-hint .el-icon {

@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 
 import api from '../api/backend-api'
 
+
 export const userStore = defineStore("user", {
     state: () => ({
         id: null as string | null,

@@ -2,8 +2,10 @@ package com.lz.devflow.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lz.devflow.constant.PromptType;
 import com.lz.devflow.dto.*;
 import com.lz.devflow.service.AIService;
+import com.lz.devflow.service.PromptTemplateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -14,6 +16,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.Resource;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -39,14 +43,17 @@ public class UnifiedAIServiceImpl implements AIService {
     private final String clarificationPromptTemplate;
     private final String optimizationPromptTemplate;
     private final String providerType;
+    private final PromptTemplateService promptTemplateService;
 
     public UnifiedAIServiceImpl(
             ChatClient chatClient,
+            PromptTemplateService promptTemplateService,
             @Value("classpath:prompts/requirement-clarification.st") Resource clarificationPrompt,
             @Value("classpath:prompts/requirement-optimization.st") Resource optimizationPrompt,
             @Value("${ai.provider:qwen}") String providerType) throws IOException {
         
         this.chatClient = chatClient;
+        this.promptTemplateService = promptTemplateService;
         this.objectMapper = new ObjectMapper();
         this.providerType = providerType;
         
@@ -120,7 +127,14 @@ public class UnifiedAIServiceImpl implements AIService {
         logger.info("Generating clarification questions using {} provider", providerType);
         
         try {
-            String promptText = clarificationPromptTemplate
+            // Get effective prompt template
+            String promptTemplate = getEffectivePromptTemplate(
+                PromptType.REQUIREMENT_CLARIFICATION,
+                request.getPromptTemplateId(),
+                request.getProjectId()
+            );
+            
+            String promptText = promptTemplate
                     .replace("{title}", request.getTitle() != null ? request.getTitle() : "N/A")
                     .replace("{projectContext}", request.getProjectContext() != null ? request.getProjectContext() : "N/A")
                     .replace("{requirement}", request.getOriginalRequirement());
@@ -159,7 +173,14 @@ public class UnifiedAIServiceImpl implements AIService {
                 qaBuilder.append(String.format("Q: %s\nA: %s\n\n", qa.getQuestion(), qa.getAnswer()));
             }
             
-            String promptText = optimizationPromptTemplate
+            // Get effective prompt template
+            String promptTemplate = getEffectivePromptTemplate(
+                PromptType.REQUIREMENT_OPTIMIZATION,
+                request.getPromptTemplateId(),
+                request.getProjectId()
+            );
+            
+            String promptText = promptTemplate
                     .replace("{title}", request.getTitle() != null ? request.getTitle() : "N/A")
                     .replace("{projectContext}", request.getProjectContext() != null ? request.getProjectContext() : "N/A")
                     .replace("{originalRequirement}", request.getOriginalRequirement())
@@ -316,5 +337,58 @@ public class UnifiedAIServiceImpl implements AIService {
         ));
         
         return RequirementClarificationResponse.success(questions);
+    }
+    
+    /**
+     * Get effective prompt template based on priority: custom template > user level > project level > system level
+     */
+    private String getEffectivePromptTemplate(PromptType type, String customTemplateId, String projectId) {
+        try {
+            // Priority 1: Use custom template if specified
+            if (customTemplateId != null && !customTemplateId.trim().isEmpty()) {
+                PromptTemplateResponse customTemplate = promptTemplateService.getTemplateById(customTemplateId);
+                if (customTemplate != null && customTemplate.getEnabled()) {
+                    logger.debug("Using custom prompt template: {}", customTemplateId);
+                    return customTemplate.getContent();
+                }
+            }
+            
+            // Priority 2-4: Get effective template (user > project > system)
+            String userId = getCurrentUserId();
+            PromptTemplateResponse effectiveTemplate = promptTemplateService
+                .getEffectivePromptTemplate(type, userId, projectId);
+            
+            if (effectiveTemplate != null) {
+                logger.debug("Using {} level prompt template", effectiveTemplate.getLevel());
+                return effectiveTemplate.getContent();
+            }
+            
+            // Fallback: Use default template from resources
+            logger.debug("Using default prompt template from resources");
+            return type == PromptType.REQUIREMENT_CLARIFICATION 
+                ? clarificationPromptTemplate 
+                : optimizationPromptTemplate;
+                
+        } catch (Exception e) {
+            logger.warn("Error getting effective prompt template, falling back to default", e);
+            return type == PromptType.REQUIREMENT_CLARIFICATION 
+                ? clarificationPromptTemplate 
+                : optimizationPromptTemplate;
+        }
+    }
+    
+    /**
+     * Get current user ID from security context
+     */
+    private String getCurrentUserId() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.getPrincipal() instanceof org.springframework.security.core.userdetails.User) {
+                return ((org.springframework.security.core.userdetails.User) authentication.getPrincipal()).getUsername();
+            }
+        } catch (Exception e) {
+            logger.debug("Could not get current user ID from security context", e);
+        }
+        return null;
     }
 }

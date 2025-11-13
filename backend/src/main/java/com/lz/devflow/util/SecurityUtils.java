@@ -6,6 +6,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 
+import com.lz.devflow.dto.CustomizeUserDetails;
+
 import java.security.SecureRandom;
 import java.util.Base64;
 
@@ -41,12 +43,12 @@ public class SecurityUtils {
         return null;
     }
 
-    public static String getCurrentUserOid() {
+    public static String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null) {
             Object principal = authentication.getPrincipal();
-            if (principal instanceof DefaultOidcUser defaultOidcUser) {
-                return defaultOidcUser.getAttribute("oid");
+            if (principal instanceof CustomizeUserDetails customizeUserDetails) {
+                return customizeUserDetails.getUserId();
             }
         }
         return null;

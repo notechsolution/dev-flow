@@ -14,6 +14,12 @@ public class RequirementClarificationRequest {
     
     // Business context to help AI better understand the requirement
     private String projectContext;
+    
+    // Project ID (optional, for project-level prompt template)
+    private String projectId;
+    
+    // Custom prompt template ID (optional, if user wants to use specific template)
+    private String promptTemplateId;
 
     // Constructors
     public RequirementClarificationRequest() {
@@ -48,5 +54,21 @@ public class RequirementClarificationRequest {
 
     public void setProjectContext(String projectContext) {
         this.projectContext = projectContext;
+    }
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+
+    public String getPromptTemplateId() {
+        return promptTemplateId;
+    }
+
+    public void setPromptTemplateId(String promptTemplateId) {
+        this.promptTemplateId = promptTemplateId;
     }
 }

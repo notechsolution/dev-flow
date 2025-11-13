@@ -138,6 +138,8 @@ export interface RequirementClarificationRequest {
     originalRequirement: string;
     title?: string;
     projectContext?: string;
+    projectId?: string;
+    promptTemplateId?: string;
 }
 
 export interface RequirementClarificationResponse {
@@ -157,6 +159,8 @@ export interface RequirementOptimizationRequest {
     originalRequirement: string;
     title?: string;
     projectContext?: string;
+    projectId?: string;
+    promptTemplateId?: string;
     clarificationAnswers: QuestionAnswer[];
 }
 
@@ -439,6 +443,88 @@ export default {
     
     deleteProject(id: string): Promise<AxiosResponse<{ success: boolean; message: string }>> {
         return axiosApi.delete(`/projects/${id}`, getHeaders());
+    }
+}
+
+// Prompt Template interfaces
+export interface PromptTemplateRequest {
+    name: string;
+    type: 'REQUIREMENT_CLARIFICATION' | 'REQUIREMENT_OPTIMIZATION';
+    level: 'SYSTEM' | 'PROJECT' | 'USER';
+    content: string;
+    description?: string;
+    projectId?: string;
+    userId?: string;
+    enabled?: boolean;
+}
+
+export interface PromptTemplateResponse {
+    id: string;
+    name: string;
+    type: 'REQUIREMENT_CLARIFICATION' | 'REQUIREMENT_OPTIMIZATION';
+    level: 'SYSTEM' | 'PROJECT' | 'USER';
+    content: string;
+    description?: string;
+    projectId?: string;
+    userId?: string;
+    isDefault?: boolean;
+    enabled: boolean;
+    createdAt: string;
+    updatedAt: string;
+    createdBy?: string;
+    updatedBy?: string;
+}
+
+// Prompt Template API methods
+export const promptTemplateApi = {
+    // Get effective prompt template (user > project > system)
+    getEffectiveTemplate(type: string, projectId?: string): Promise<AxiosResponse<PromptTemplateResponse>> {
+        const params: any = { type };
+        if (projectId) params.projectId = projectId;
+        return axiosApi.get('/prompt-templates/effective', { ...getHeaders(), params });
+    },
+
+    // Get system default template
+    getSystemDefaultTemplate(type: string): Promise<AxiosResponse<PromptTemplateResponse>> {
+        return axiosApi.get(`/prompt-templates/system/default`, { ...getHeaders(), params: { type } });
+    },
+
+    // Get all system templates
+    getSystemTemplates(type?: string): Promise<AxiosResponse<PromptTemplateResponse[]>> {
+        const params = type ? { type } : {};
+        return axiosApi.get('/prompt-templates/system', { ...getHeaders(), params });
+    },
+
+    // Get project templates
+    getProjectTemplates(projectId: string, type?: string): Promise<AxiosResponse<PromptTemplateResponse[]>> {
+        const params = type ? { type } : {};
+        return axiosApi.get(`/prompt-templates/project/${projectId}`, { ...getHeaders(), params });
+    },
+
+    // Get user templates
+    getMyTemplates(type?: string): Promise<AxiosResponse<PromptTemplateResponse[]>> {
+        const params = type ? { type } : {};
+        return axiosApi.get('/prompt-templates/user/my-templates', { ...getHeaders(), params });
+    },
+
+    // Get template by ID
+    getTemplateById(id: string): Promise<AxiosResponse<PromptTemplateResponse>> {
+        return axiosApi.get(`/prompt-templates/${id}`, getHeaders());
+    },
+
+    // Create template
+    createTemplate(request: PromptTemplateRequest): Promise<AxiosResponse<PromptTemplateResponse>> {
+        return axiosApi.post('/prompt-templates', request, getHeaders());
+    },
+
+    // Update template
+    updateTemplate(id: string, request: PromptTemplateRequest): Promise<AxiosResponse<PromptTemplateResponse>> {
+        return axiosApi.put(`/prompt-templates/${id}`, request, getHeaders());
+    },
+
+    // Delete template
+    deleteTemplate(id: string): Promise<AxiosResponse<void>> {
+        return axiosApi.delete(`/prompt-templates/${id}`, getHeaders());
     }
 }
 

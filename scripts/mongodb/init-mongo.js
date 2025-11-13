@@ -47,6 +47,9 @@ print('✓ Collection "user_stories" created');
 db.createCollection('images');
 print('✓ Collection "images" created');
 
+db.createCollection('prompt_templates');
+print('✓ Collection "prompt_templates" created');
+
 // 创建索引以提高性能
 print('Creating indexes...');
 
@@ -90,11 +93,21 @@ print('✓ Index created: images.uploadedBy');
 db.images.createIndex({ 'uploadedAt': -1 }, { name: 'idx_images_uploaded_at' });
 print('✓ Index created: images.uploadedAt');
 
+// prompt_templates 集合索引
+db.prompt_templates.createIndex({ 'type': 1, 'level': 1 }, { name: 'idx_prompt_templates_type_level' });
+print('✓ Index created: prompt_templates.type + level');
+
+db.prompt_templates.createIndex({ 'type': 1, 'level': 1, 'projectId': 1 }, { name: 'idx_prompt_templates_type_level_project' });
+print('✓ Index created: prompt_templates.type + level + projectId');
+
+db.prompt_templates.createIndex({ 'type': 1, 'level': 1, 'userId': 1 }, { name: 'idx_prompt_templates_type_level_user' });
+print('✓ Index created: prompt_templates.type + level + userId');
+
 print('====================================');
 print('Database initialization completed!');
 print('====================================');
 print('Database: devflow');
 print('User: devflow');
-print('Collections created: users, projects, user_stories, images');
-print('Indexes created: 13 total');
+print('Collections created: users, projects, user_stories, images, prompt_templates');
+print('Indexes created: 16 total');
 print('====================================');

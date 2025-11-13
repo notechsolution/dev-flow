@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import com.lz.devflow.dto.CustomizeUserDetails;
 import com.lz.devflow.entity.User;
 import com.lz.devflow.repository.UserRepository;
 
@@ -30,7 +31,8 @@ public class CustomUserDetailsService implements UserDetailsService {
             new SimpleGrantedAuthority("ROLE_" + user.getRole().name())  // e.g., ROLE_USER, ROLE_ADMIN
         );
         
-        return new org.springframework.security.core.userdetails.User(
+        return new CustomizeUserDetails(
+            user.getId(),
             user.getUsername(),
             user.getPassword(),
             authorities

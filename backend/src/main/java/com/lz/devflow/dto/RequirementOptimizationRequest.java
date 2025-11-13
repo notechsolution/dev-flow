@@ -16,6 +16,12 @@ public class RequirementOptimizationRequest {
     private String title;
     private String projectContext;
     
+    // Project ID (optional, for project-level prompt template)
+    private String projectId;
+    
+    // Custom prompt template ID (optional, if user wants to use specific template)
+    private String promptTemplateId;
+    
     @NotEmpty(message = "Clarification answers cannot be empty")
     private List<QuestionAnswer> clarificationAnswers;
 
@@ -54,6 +60,22 @@ public class RequirementOptimizationRequest {
 
     public void setProjectContext(String projectContext) {
         this.projectContext = projectContext;
+    }
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+
+    public String getPromptTemplateId() {
+        return promptTemplateId;
+    }
+
+    public void setPromptTemplateId(String promptTemplateId) {
+        this.promptTemplateId = promptTemplateId;
     }
 
     public List<QuestionAnswer> getClarificationAnswers() {
