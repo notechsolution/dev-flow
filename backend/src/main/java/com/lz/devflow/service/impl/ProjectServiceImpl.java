@@ -29,7 +29,7 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public ProjectResponse createProject(CreateProjectRequest request, String currentUserId) {
         // Verify user is OPERATOR
-        User currentUser = userRepository.findByUsername(currentUserId)
+        User currentUser = userRepository.findById(currentUserId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!UserRole.OPERATOR.equals(currentUser.getRole())) {
@@ -86,7 +86,7 @@ public class ProjectServiceImpl implements ProjectService {
     
     @Override
     public List<ProjectResponse> getAllProjects(String currentUserId, String nameFilter, String statusFilter) {
-        User currentUser = userRepository.findByUsername(currentUserId)
+        User currentUser = userRepository.findById(currentUserId)
             .orElseThrow(() -> new RuntimeException("User not found"));
         
         List<Project> projects;
@@ -224,8 +224,8 @@ public class ProjectServiceImpl implements ProjectService {
     }
     
     @Override
-    public boolean canAccessProject(String projectId, String userName) {
-        User user = userRepository.findByUsername(userName).orElse(null);
+    public boolean canAccessProject(String projectId, String userId) {
+        User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
             return false;
         }
@@ -241,9 +241,9 @@ public class ProjectServiceImpl implements ProjectService {
         }
         
         // Check if user is owner, admin, or member
-        return userName.equals(project.getOwnerId())
-            || (project.getAdminIds() != null && project.getAdminIds().contains(userName))
-            || (project.getMemberIds() != null && project.getMemberIds().contains(userName));
+        return userId.equals(project.getOwnerId())
+            || (project.getAdminIds() != null && project.getAdminIds().contains(userId))
+            || (project.getMemberIds() != null && project.getMemberIds().contains(userId));
     }
     
     @Override

@@ -1,87 +1,92 @@
 <template>
     <div class="prompt-template-selector">
-        <el-card class="prompt-card">
-            <template #header>
-                <div class="card-header">
-                    <span>{{ title }}</span>
-                    <el-tooltip content="提示词用于指导AI生成内容，您可以选择或自定义提示词" placement="top">
-                        <el-icon><QuestionFilled /></el-icon>
-                    </el-tooltip>
-                </div>
-            </template>
+        <el-collapse v-model="activeCollapse" class="prompt-collapse">
+            <el-collapse-item name="1">
+                <template #title>
+                    <div class="collapse-title">
+                        <el-icon><Edit /></el-icon>
+                        <span>{{ title }}</span>
+                        <el-tooltip content="提示词用于指导AI生成内容，您可以选择或自定义提示词" placement="top">
+                            <el-icon class="info-icon"><QuestionFilled /></el-icon>
+                        </el-tooltip>
+                    </div>
+                </template>
 
-            <!-- 提示词选择 -->
-            <el-form-item label="选择提示词">
-                <el-select
-                    v-model="selectedTemplateId"
-                    placeholder="请选择提示词模板"
-                    style="width: 100%"
-                    @change="onTemplateChange"
-                >
-                    <el-option label="系统默认" value="SYSTEM" />
-                    <el-option
-                        v-if="projectTemplate"
-                        :label="`项目预设: ${projectTemplate.name}`"
-                        :value="projectTemplate.id"
-                    />
-                    <el-option-group label="我的提示词" v-if="userTemplates.length > 0">
-                        <el-option
-                            v-for="template in userTemplates"
-                            :key="template.id"
-                            :label="template.name"
-                            :value="template.id"
+                <div class="prompt-content">
+                    <!-- 提示词选择 -->
+                    <el-form-item label="选择提示词">
+                        <el-select
+                            v-model="selectedTemplateId"
+                            placeholder="请选择提示词模板"
+                            style="width: 100%"
+                            @change="onTemplateChange"
+                        >
+                            <el-option label="系统默认" value="SYSTEM" />
+                            <el-option
+                                v-if="projectTemplate"
+                                :label="`项目预设: ${projectTemplate.name}`"
+                                :value="projectTemplate.id"
+                            />
+                            <el-option-group label="我的提示词" v-if="userTemplates.length > 0">
+                                <el-option
+                                    v-for="template in userTemplates"
+                                    :key="template.id"
+                                    :label="template.name"
+                                    :value="template.id"
+                                />
+                            </el-option-group>
+                        </el-select>
+                    </el-form-item>
+
+                    <!-- 提示词内容预览/编辑 -->
+                    <el-form-item label="提示词内容">
+                        <el-input
+                            v-model="promptContent"
+                            type="textarea"
+                            :rows="10"
+                            placeholder="提示词内容..."
+                            :readonly="!allowEdit"
                         />
-                    </el-option-group>
-                </el-select>
-            </el-form-item>
+                        <div class="template-info" v-if="currentTemplate">
+                            <el-tag :type="getLevelType(currentTemplate.level)" size="small">
+                                {{ getLevelLabel(currentTemplate.level) }}
+                            </el-tag>
+                            <span class="template-name">{{ currentTemplate.name }}</span>
+                            <span class="template-desc" v-if="currentTemplate.description">
+                                - {{ currentTemplate.description }}
+                            </span>
+                        </div>
+                    </el-form-item>
 
-            <!-- 提示词内容预览/编辑 -->
-            <el-form-item label="提示词内容">
-                <el-input
-                    v-model="promptContent"
-                    type="textarea"
-                    :rows="10"
-                    placeholder="提示词内容..."
-                    :readonly="!allowEdit"
-                />
-                <div class="template-info" v-if="currentTemplate">
-                    <el-tag :type="getLevelType(currentTemplate.level)" size="small">
-                        {{ getLevelLabel(currentTemplate.level) }}
-                    </el-tag>
-                    <span class="template-name">{{ currentTemplate.name }}</span>
-                    <span class="template-desc" v-if="currentTemplate.description">
-                        - {{ currentTemplate.description }}
-                    </span>
+                    <!-- 操作按钮 -->
+                    <div class="action-buttons">
+                        <el-checkbox v-model="allowEdit" @change="onEditModeChange">
+                            允许编辑提示词
+                        </el-checkbox>
+                        <div class="button-group">
+                            <el-button
+                                v-if="allowEdit && contentModified"
+                                @click="saveAsMyTemplate"
+                                type="primary"
+                                :icon="Document"
+                            >
+                                保存为我的提示词
+                            </el-button>
+                            <el-button @click="resetToOriginal" v-if="contentModified">
+                                还原
+                            </el-button>
+                        </div>
+                    </div>
                 </div>
-            </el-form-item>
-
-            <!-- 操作按钮 -->
-            <div class="action-buttons">
-                <el-checkbox v-model="allowEdit" @change="onEditModeChange">
-                    允许编辑提示词
-                </el-checkbox>
-                <div class="button-group">
-                    <el-button
-                        v-if="allowEdit && contentModified"
-                        @click="saveAsMyTemplate"
-                        type="primary"
-                        :icon="Document"
-                    >
-                        保存为我的提示词
-                    </el-button>
-                    <el-button @click="resetToOriginal" v-if="contentModified">
-                        还原
-                    </el-button>
-                </div>
-            </div>
-        </el-card>
+            </el-collapse-item>
+        </el-collapse>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { QuestionFilled, Document } from '@element-plus/icons-vue'
+import { QuestionFilled, Document, Edit } from '@element-plus/icons-vue'
 import { promptTemplateApi, PromptTemplateResponse } from '@/api/backend-api'
 
 // Props
@@ -98,6 +103,7 @@ const emit = defineEmits<{
 }>()
 
 // State
+const activeCollapse = ref<string[]>([]) // 默认收起，空数组表示不展开任何项
 const selectedTemplateId = ref<string | null>("SYSTEM")
 const promptContent = ref('')
 const originalContent = ref('')
@@ -267,18 +273,49 @@ onMounted(() => {
 .prompt-template-selector {
     margin: 20px 0;
 
-    .prompt-card {
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 600;
-
-            .el-icon {
-                color: #909399;
-                cursor: help;
+    .prompt-collapse {
+        border: 1px solid #EBEEF5;
+        border-radius: 4px;
+        
+        :deep(.el-collapse-item__header) {
+            background-color: #f5f7fa;
+            padding: 12px 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+            
+            &:hover {
+                background-color: #ecf5ff;
             }
         }
+        
+        :deep(.el-collapse-item__content) {
+            padding: 16px;
+            background-color: #fff;
+        }
+    }
+
+    .collapse-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        flex: 1;
+
+        .el-icon {
+            &:first-child {
+                color: #409EFF;
+            }
+        }
+        
+        .info-icon {
+            color: #909399;
+            cursor: help;
+            margin-left: auto;
+        }
+    }
+
+    .prompt-content {
+        padding: 8px 0;
     }
 
     .template-info {

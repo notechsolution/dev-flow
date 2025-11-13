@@ -153,6 +153,30 @@
                 </div>
                 
                 <div v-else-if="clarificationQuestions.length > 0" class="questions-container">
+                    <!-- Regenerate section for edit mode -->
+                    <div class="regenerate-section">
+                        
+                        <!-- Prompt Template Selector for Regeneration -->
+                        <PromptTemplateSelector
+                            v-if="!loadingClarification"
+                            type="REQUIREMENT_CLARIFICATION"
+                            :project-id="userStory.projectId"
+                            :user-id="userId"
+                            title="需求澄清提示词"
+                            @template-selected="onClarificationTemplateSelected"
+                        />
+                        
+                        <div class="generate-button-container">
+                            <el-button 
+                                type="warning" 
+                                @click="regenerateClarificationQuestions"
+                                :loading="loadingClarification"
+                            >
+                                重新生成澄清问题
+                            </el-button>
+                        </div>
+                    </div>
+                    
                     <div 
                         v-for="(question, index) in clarificationQuestions" 
                         :key="question.id"
@@ -180,21 +204,13 @@
                 <div class="step-actions">
                     <el-button size="large" @click="currentStep = 1">上一步</el-button>
                     <el-button 
-                        v-if="hasExistingOptimization"
-                        type="info"
-                        size="large" 
-                        @click="viewExistingOptimization"
-                    >
-                        查看现有优化需求
-                    </el-button>
-                    <el-button 
                         type="primary" 
                         size="large" 
                         @click="goToOptimization"
                         :disabled="!allQuestionsAnswered"
                         :loading="generatingOptimization"
                     >
-                        {{ hasExistingOptimization ? '重新优化需求' : '下一步：需求优化' }}
+                        下一步：需求优化
                     </el-button>
                 </div>
             </div>
@@ -209,6 +225,7 @@
                             size="large" 
                             @click="saveUserStory" 
                             :loading="saving"
+                            :disabled="!optimizationResult.optimizedRequirement"
                         >
                             保存 User Story
                         </el-button>
@@ -220,6 +237,7 @@
                     v-if="!loadingOptimization && !optimizationResult.optimizedRequirement"
                     type="REQUIREMENT_OPTIMIZATION"
                     :project-id="userStory.projectId"
+                    :user-id="userId"
                     title="需求优化提示词"
                     @template-selected="onOptimizationTemplateSelected"
                 />
@@ -237,6 +255,29 @@
                 </div>
                 
                 <div v-else-if="optimizationResult.optimizedRequirement" class="optimization-result">
+                    <!-- Regenerate section for edit mode -->
+                    <div class="regenerate-section">                       
+                        <!-- Prompt Template Selector for Regeneration -->
+                        <PromptTemplateSelector
+                            v-if="!loadingOptimization"
+                            type="REQUIREMENT_OPTIMIZATION"
+                            :project-id="userStory.projectId"
+                            :user-id="userId"
+                            title="需求优化提示词"
+                            @template-selected="onOptimizationTemplateSelected"
+                        />
+                        
+                        <div class="generate-button-container">
+                            <el-button 
+                                type="warning" 
+                                @click="regenerateOptimization"
+                                :loading="loadingOptimization"
+                            >
+                                重新优化需求
+                            </el-button>
+                        </div>
+                    </div>
+                    
                     <el-tabs v-model="optimizationTab" type="card">
                         <el-tab-pane label="优化后的需求" name="optimized">
                             <MilkdownProvider>
@@ -348,6 +389,7 @@ const userStory = reactive({
     storyId: '', // External PM system ID
     originalRequirement: '',
     description: '',
+    projectContext: '', // 项目上下文
     status: 'BACKLOG',
     priority: 'MEDIUM'
 })
@@ -574,6 +616,27 @@ const generateClarificationQuestions = async () => {
     }
 }
 
+// Regenerate clarification questions in edit mode
+const regenerateClarificationQuestions = async () => {
+    try {
+        await ElMessageBox.confirm(
+            '重新生成将覆盖现有的澄清问题及答案，确定要继续吗？',
+            '确认重新生成',
+            {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }
+        )
+        
+        // Call the same generation method
+        await generateClarificationQuestions()
+    } catch {
+        // User cancelled
+        return
+    }
+}
+
 const viewExistingOptimization = () => {
     // Simply navigate to step 3 to view existing optimization without calling AI
     if (hasExistingOptimization.value) {
@@ -587,26 +650,8 @@ const goToOptimization = async () => {
         ElMessage.warning('请回答所有问题后再继续')
         return
     }
-
-    // If there's existing optimization, confirm before regenerating
-    if (hasExistingOptimization.value) {
-        try {
-            await ElMessageBox.confirm(
-                '您已有优化后的需求，重新优化将覆盖现有内容。确定要继续吗？',
-                '确认重新优化',
-                {
-                    confirmButtonText: '重新优化',
-                    cancelButtonText: '取消',
-                    type: 'warning'
-                }
-            )
-        } catch {
-            return // User cancelled
-        }
-    }
-
-    currentStep.value = 3;
-    await generateOptimization();
+    // Just navigate to step 3, don't auto-generate
+    currentStep.value = 3
 }
 
 // Generate optimization (called after template is selected)
@@ -651,6 +696,27 @@ const generateOptimization = async () => {
     } finally {
         loadingOptimization.value = false
         generatingOptimization.value = false
+    }
+}
+
+// Regenerate optimization in edit mode
+const regenerateOptimization = async () => {
+    try {
+        await ElMessageBox.confirm(
+            '重新优化将覆盖现有的优化结果，确定要继续吗？',
+            '确认重新优化',
+            {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }
+        )
+        
+        // Call the same generation method
+        await generateOptimization()
+    } catch {
+        // User cancelled
+        return
     }
 }
 
@@ -890,6 +956,19 @@ onMounted(async () => {
 
 .answer-input {
     margin-top: 10px;
+}
+
+/* Regenerate section styles */
+.regenerate-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #fef0f0;
+    border-radius: 8px;
+    border: 1px solid #fde2e2;
+}
+
+.regenerate-section .el-alert {
+    margin-bottom: 16px;
 }
 
 /* Optimization styles */

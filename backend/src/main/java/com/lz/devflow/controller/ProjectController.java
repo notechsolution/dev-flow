@@ -1,5 +1,23 @@
 package com.lz.devflow.controller;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.lz.devflow.dto.CreateProjectRequest;
 import com.lz.devflow.dto.ProjectResponse;
 import com.lz.devflow.dto.UpdateProjectRequest;
@@ -7,17 +25,6 @@ import com.lz.devflow.service.ProjectService;
 import com.lz.devflow.util.SecurityUtils;
 
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
-
-import java.security.Security;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * REST Controller for Project Management
@@ -40,7 +47,7 @@ public class ProjectController {
     public ResponseEntity<Map<String, Object>> createProject(
             @Valid @RequestBody CreateProjectRequest request) {
         try {
-            String currentUserId = SecurityUtils.getCurrentUserName();
+            String currentUserId = SecurityUtils.getCurrentUserId();
             ProjectResponse project = projectService.createProject(request, currentUserId);
             
             Map<String, Object> response = new HashMap<>();
@@ -68,7 +75,7 @@ public class ProjectController {
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String status) {
         try {
-            String currentUserId = SecurityUtils.getCurrentUserName();
+            String currentUserId = SecurityUtils.getCurrentUserId();
             List<ProjectResponse> projects = projectService.getAllProjects(currentUserId, name, status);
             
             Map<String, Object> response = new HashMap<>();
@@ -93,7 +100,7 @@ public class ProjectController {
     @PreAuthorize("hasAnyRole('OPERATOR', 'ADMIN', 'USER')")
     public ResponseEntity<Map<String, Object>> getProjectById(@PathVariable String id) {
         try {
-            String currentUserId = SecurityUtils.getCurrentUserName();
+            String currentUserId = SecurityUtils.getCurrentUserId();
             ProjectResponse project = projectService.getProjectById(id, currentUserId);
             
             Map<String, Object> response = new HashMap<>();
@@ -119,7 +126,7 @@ public class ProjectController {
             @PathVariable String id,
             @RequestBody UpdateProjectRequest request) {
         try {
-            String currentUserId = SecurityUtils.getCurrentUserName();
+            String currentUserId = SecurityUtils.getCurrentUserId();
             ProjectResponse project = projectService.updateProject(id, request, currentUserId);
             
             Map<String, Object> response = new HashMap<>();
@@ -144,7 +151,7 @@ public class ProjectController {
     @PreAuthorize("hasRole('OPERATOR')")
     public ResponseEntity<Map<String, Object>> deleteProject(@PathVariable String id) {
         try {
-            String currentUserId = SecurityUtils.getCurrentUserName();
+            String currentUserId = SecurityUtils.getCurrentUserId();
             projectService.deleteProject(id, currentUserId);
             
             Map<String, Object> response = new HashMap<>();

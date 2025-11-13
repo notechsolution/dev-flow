@@ -9,8 +9,6 @@ import com.lz.devflow.util.SecurityUtils;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 
-import java.security.Security;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +28,8 @@ public class AIController {
     @Resource
     private AIService aiService;
 
-    public ProjectService projectService;
+    @Resource
+    private ProjectService projectService;
 
     /**
      * Optimize user story description using AI
