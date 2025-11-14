@@ -18,12 +18,12 @@ public interface PromptTemplateRepository extends MongoRepository<PromptTemplate
     /**
      * Find by type and level
      */
-    List<PromptTemplate> findByTypeAndLevel(PromptType type, PromptLevel level);
+    List<PromptTemplate> findByLevel(PromptLevel level);
     
     /**
      * Find by type, level and enabled status
      */
-    List<PromptTemplate> findByTypeAndLevelAndEnabled(PromptType type, PromptLevel level, Boolean enabled);
+    List<PromptTemplate> findByTypeAndLevel(PromptType type, PromptLevel level);
     
     /**
      * Find project-level templates by type and project ID

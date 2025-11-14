@@ -61,6 +61,14 @@ const routes = [
             {
                 path: "/projects/edit/:id",
                 component: () => import('@/views/ProjectForm.vue')
+            },
+            {
+                path: "/prompt-templates",
+                component: () => import('@/views/prompt-templates/PromptTemplateManagement.vue')
+            },
+            {
+                path: "/user/prompt-settings",
+                component: () => import('@/views/user/UserPromptSettings.vue')
             }
         ]
     },

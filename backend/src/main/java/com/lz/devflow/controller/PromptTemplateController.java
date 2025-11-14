@@ -220,6 +220,7 @@ public class PromptTemplateController {
         
         try {
             String userId =  SecurityUtils.getCurrentUserId();
+            request.setUserId(userId);
             PromptTemplateResponse updated = promptTemplateService.updateTemplate(id, request, userId);
             return ResponseEntity.ok(updated);
             

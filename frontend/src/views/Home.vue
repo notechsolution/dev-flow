@@ -22,6 +22,17 @@
                         <el-icon><UserFilled /></el-icon>
                         <span>个人中心</span>
                     </el-menu-item>
+                    <el-menu-item index="/user/prompt-settings">
+                        <el-icon>
+                            <svg height="1em" viewBox="0 0 24 24" width="1em"
+                                 xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM6 20V4h7v5h5v11zm2-10h8v2H8zm0 4h8v2H8z"
+                                    fill="currentColor"></path>
+                            </svg>
+                        </el-icon>
+                        <span>我的提示词</span>
+                    </el-menu-item>
                     <el-menu-item @click="logout">
                         <el-icon><SwitchButton /></el-icon>
                         <span>退出登录</span>
@@ -91,6 +102,20 @@
                                             </svg>
                                         </el-icon>
                                         <span>项目管理</span>
+                                    </template>
+                                </el-menu-item>
+                                <el-menu-item v-if="store.role === 'ADMIN' || store.role === 'OPERATOR'"
+                                              key="/prompt-templates" index="/prompt-templates">
+                                    <template #title>
+                                        <el-icon>
+                                            <svg height="1em" viewBox="0 0 24 24" width="1em"
+                                                 xmlns="http://www.w3.org/2000/svg">
+                                                <path
+                                                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM6 20V4h7v5h5v11zm2-10h8v2H8zm0 4h8v2H8z"
+                                                    fill="currentColor"></path>
+                                            </svg>
+                                        </el-icon>
+                                        <span>提示词管理</span>
                                     </template>
                                 </el-menu-item>
                             </el-menu>

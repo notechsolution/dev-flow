@@ -120,11 +120,9 @@ public class PromptTemplateServiceImpl implements PromptTemplateService {
         List<PromptTemplate> templates;
         
         if (type != null) {
-            templates = promptTemplateRepository
-                .findByTypeAndLevelAndEnabled(type, PromptLevel.SYSTEM, true);
+            templates = promptTemplateRepository.findByTypeAndLevel(type, PromptLevel.SYSTEM);
         } else {
-            templates = promptTemplateRepository
-                .findByTypeAndLevel(null, PromptLevel.SYSTEM);
+            templates = promptTemplateRepository.findByLevel(PromptLevel.SYSTEM);
         }
         
         return templates.stream()
