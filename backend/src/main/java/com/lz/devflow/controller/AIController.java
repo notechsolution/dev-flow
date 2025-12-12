@@ -1,5 +1,6 @@
 package com.lz.devflow.controller;
 
+import com.lz.devflow.configuration.AIConfiguration;
 import com.lz.devflow.dto.*;
 import com.lz.devflow.entity.Project;
 import com.lz.devflow.service.AIService;
@@ -11,9 +12,14 @@ import jakarta.validation.Valid;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * REST Controller for AI-powered operations
@@ -30,6 +36,12 @@ public class AIController {
 
     @Resource
     private ProjectService projectService;
+    
+    @Resource
+    private AIConfiguration aiConfiguration;
+    
+    @Value("${ai.provider-default:dashscope}")
+    private String defaultProvider;
 
     /**
      * Optimize user story description using AI
@@ -107,6 +119,38 @@ public class AIController {
     public ResponseEntity<String> healthCheck() {
         logger.info("AI service health check requested");
         return ResponseEntity.ok("AI service is running");
+    }
+    
+    /**
+     * Get available AI providers and default provider
+     * 
+     * @return available providers list and default provider
+     */
+    @GetMapping("/providers")
+    public ResponseEntity<Map<String, Object>> getAvailableProviders() {
+        logger.info("AI providers list requested");
+        
+        try {
+            List<String> availableProviders = aiConfiguration.getAllChatClients().keySet()
+                    .stream()
+                    .sorted()
+                    .collect(Collectors.toList());
+            
+            Map<String, Object> response = Map.of(
+                "availableProviders", availableProviders,
+                "defaultProvider", defaultProvider,
+                "providers", Map.of(
+                    "dashscope", Map.of("name", "DashScope (阿里百炼)", "description", "阿里云百炼平台"),
+                    "ollama", Map.of("name", "Ollama", "description", "本地运行的开源大模型"),
+                    "openai", Map.of("name", "OpenAI", "description", "OpenAI GPT模型")
+                )
+            );
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error retrieving AI providers", e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**

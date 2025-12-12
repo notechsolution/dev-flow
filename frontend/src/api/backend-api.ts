@@ -105,6 +105,7 @@ export interface UserStoryOptimizationRequest {
     title: string;
     projectContext?: string;
     additionalRequirements?: string;
+    provider?: string;  // AI provider to use (dashscope, ollama, openai)
 }
 
 export interface UserStoryOptimizationResponse {
@@ -119,6 +120,7 @@ export interface TestCaseGenerationRequest {
     description: string;
     optimizedDescription?: string;
     projectContext?: string;
+    provider?: string;  // AI provider to use (dashscope, ollama, openai)
 }
 
 export interface TestCaseGenerationResponse {
@@ -140,6 +142,7 @@ export interface RequirementClarificationRequest {
     projectContext?: string;
     projectId?: string;
     promptTemplateId?: string;
+    provider?: string;  // AI provider to use (dashscope, ollama, openai)
 }
 
 export interface RequirementClarificationResponse {
@@ -161,6 +164,7 @@ export interface RequirementOptimizationRequest {
     projectContext?: string;
     projectId?: string;
     promptTemplateId?: string;
+    provider?: string;  // AI provider to use (dashscope, ollama, openai)
     clarificationAnswers: QuestionAnswer[];
 }
 

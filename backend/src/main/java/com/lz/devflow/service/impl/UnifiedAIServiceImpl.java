@@ -39,36 +39,34 @@ public class UnifiedAIServiceImpl implements AIService {
 
     private static final Logger logger = LoggerFactory.getLogger(UnifiedAIServiceImpl.class);
 
-    private final ChatClient defaultChatClient;
+    private final AIConfiguration aiConfiguration;
     private final ObjectMapper objectMapper;
     private final String clarificationPromptTemplate;
     private final String optimizationPromptTemplate;
-    private final String providerType;
     private final PromptTemplateService promptTemplateService;
-    private final AIConfiguration aiConfiguration;
 
     public UnifiedAIServiceImpl(
+            AIConfiguration aiConfiguration,
             PromptTemplateService promptTemplateService,
             @Value("classpath:prompts/requirement-clarification.st") Resource clarificationPrompt,
-            @Value("classpath:prompts/requirement-optimization.st") Resource optimizationPrompt,
-            @Value("${ai.provider:qwen}") String providerType) throws IOException {
+            @Value("classpath:prompts/requirement-optimization.st") Resource optimizationPrompt) throws IOException {
         
-        this.defaultChatClient = aiConfiguration.getDefaultChatClient();
+        this.aiConfiguration = aiConfiguration;
         this.promptTemplateService = promptTemplateService;
         this.objectMapper = new ObjectMapper();
-        this.providerType = providerType;
         
         // Load prompt templates
         this.clarificationPromptTemplate = clarificationPrompt.getContentAsString(StandardCharsets.UTF_8);
         this.optimizationPromptTemplate = optimizationPrompt.getContentAsString(StandardCharsets.UTF_8);
         
-        logger.info("UnifiedAIServiceImpl initialized with provider: {}", 
+        logger.info("UnifiedAIServiceImpl initialized with default provider: {}", 
                     providerType);
     }
 
     @Override
     public UserStoryOptimizationResponse optimizeUserStory(UserStoryOptimizationRequest request) {
-        logger.info("Optimizing user story using {} provider", providerType);
+        String provider = getEffectiveProvider(request.getProvider());
+        logger.info("Optimizing user story using provider: {}", provider);
         
         try {
             RequirementOptimizationRequest optimizationRequest = new RequirementOptimizationRequest();
@@ -76,6 +74,7 @@ public class UnifiedAIServiceImpl implements AIService {
             optimizationRequest.setTitle(request.getTitle());
             optimizationRequest.setProjectContext(request.getProjectContext());
             optimizationRequest.setClarificationAnswers(new ArrayList<>());
+            optimizationRequest.setProvider(provider);
             
             RequirementOptimizationResponse response = optimizeRequirementWithClarification(optimizationRequest);
             
@@ -92,7 +91,8 @@ public class UnifiedAIServiceImpl implements AIService {
 
     @Override
     public TestCaseGenerationResponse generateTestCases(TestCaseGenerationRequest request) {
-        logger.info("Generating test cases using {} provider", providerType);
+        String provider = getEffectiveProvider(request.getProvider());
+        logger.info("Generating test cases using provider: {}", provider);
         
         try {
             String description = request.getOptimizedDescription() != null && !request.getOptimizedDescription().trim().isEmpty()
@@ -109,8 +109,9 @@ public class UnifiedAIServiceImpl implements AIService {
                 description
             );
             
+            ChatClient chatClient = aiConfiguration.getChatClient(provider);
             Prompt prompt = new Prompt(new UserMessage(promptText));
-            ChatResponse response = defaultChatClient.prompt(prompt).call().chatResponse();
+            ChatResponse response = chatClient.prompt(prompt).call().chatResponse();
             String content = response.getResult().getOutput().getText();
             
             List<String> testCases = parseTestCasesFromJson(content);
@@ -125,7 +126,8 @@ public class UnifiedAIServiceImpl implements AIService {
 
     @Override
     public RequirementClarificationResponse generateClarificationQuestions(RequirementClarificationRequest request) {
-        logger.info("Generating clarification questions using {} provider", providerType);
+        String provider = getEffectiveProvider(request.getProvider());
+        logger.info("Generating clarification questions using provider: {}", provider);
         
         try {
             // Get effective prompt template
@@ -140,10 +142,11 @@ public class UnifiedAIServiceImpl implements AIService {
                     .replace("{projectContext}", request.getProjectContext() != null ? request.getProjectContext() : "N/A")
                     .replace("{requirement}", request.getOriginalRequirement());
             
-            logger.debug("Calling AI provider with clarification prompt");
+            logger.debug("Calling AI provider {} with clarification prompt", provider);
             
+            ChatClient chatClient = aiConfiguration.getChatClient(provider);
             Prompt prompt = new Prompt(new UserMessage(promptText));
-            ChatResponse response = defaultChatClient.prompt(prompt).call().chatResponse();
+            ChatResponse response = chatClient.prompt(prompt).call().chatResponse();
             String content = response.getResult().getOutput().getText();
             
             logger.debug("Received response from AI: {}", content.substring(0, Math.min(200, content.length())));
@@ -166,7 +169,8 @@ public class UnifiedAIServiceImpl implements AIService {
 
     @Override
     public RequirementOptimizationResponse optimizeRequirementWithClarification(RequirementOptimizationRequest request) {
-        logger.info("Optimizing requirement with clarification using {} provider", providerType);
+        String provider = getEffectiveProvider(request.getProvider());
+        logger.info("Optimizing requirement with clarification using provider: {}", provider);
         
         try {
             StringBuilder qaBuilder = new StringBuilder();
@@ -187,10 +191,11 @@ public class UnifiedAIServiceImpl implements AIService {
                     .replace("{originalRequirement}", request.getOriginalRequirement())
                     .replace("{clarificationQA}", qaBuilder.toString());
             
-            logger.debug("Calling AI provider with optimization prompt");
+            logger.debug("Calling AI provider {} with optimization prompt", provider);
             
+            ChatClient chatClient = aiConfiguration.getChatClient(provider);
             Prompt prompt = new Prompt(new UserMessage(promptText));
-            ChatResponse response = defaultChatClient.prompt(prompt).call().chatResponse();
+            ChatResponse response = chatClient.prompt(prompt).call().chatResponse();
             String content = response.getResult().getOutput().getText();
             
             logger.debug("Received optimization response from AI");
@@ -391,5 +396,26 @@ public class UnifiedAIServiceImpl implements AIService {
             logger.debug("Could not get current user ID from security context", e);
         }
         return null;
+    }
+    
+    /**
+     * Get effective AI provider based on request or default configuration
+     * 
+     * @param requestProvider provider specified in request (can be null)
+     * @return effective provider name (dashscope, ollama, or openai)
+     */
+    private String getEffectiveProvider(String requestProvider) {
+        if (requestProvider != null && !requestProvider.trim().isEmpty()) {
+            String normalizedProvider = requestProvider.trim().toLowerCase();
+            // Validate provider is supported
+            if (aiConfiguration.getChatClient(normalizedProvider) != null) {
+                logger.debug("Using request-specified provider: {}", normalizedProvider);
+                return normalizedProvider;
+            } else {
+                logger.warn("Requested provider '{}' not available, falling back to default: {}", 
+                           requestProvider, aiConfiguration.getDefaultProvider());
+            }
+        }
+        return aiConfiguration.getDefaultProvider();
     }
 }

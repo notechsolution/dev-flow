@@ -6,21 +6,18 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.ollama.OllamaChatModel;
-import org.springframework.ai.ollama.api.OllamaApi;
-import org.springframework.ai.ollama.api.OllamaOptions;
+import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.AutoConfigureBefore;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * AI Configuration for multiple providers
- * Supports switching between different AI providers (Qwen/DashScope, Ollama, etc.)
+ * Supports switching between different AI providers (Qwen/DashScope, Ollama, OpenAI)
  */
 @Configuration
 public class AIConfiguration {
@@ -28,7 +25,8 @@ public class AIConfiguration {
     private static final Logger logger = LoggerFactory.getLogger(AIConfiguration.class);
     private final Map<String, ChatModel> chatModels;
     private final Map<String, ChatClient> chatClients;
-    @Value("${ai.provider-default}")
+    
+    @Value("${provider-default:dashscope}")
     private String defaultProvider;
 
     // constructor with all chat models
@@ -37,31 +35,69 @@ public class AIConfiguration {
             OllamaChatModel ollamaChatModel,
             OpenAiChatModel openAiChatModel) {
         
-        // store these models as map
-        this.chatModels = Map.of(
-            "dashscope", dashScopeChatModel,
-            "ollama", ollamaChatModel,
-            "openai", openAiChatModel
-        );
+        this.chatModels = new HashMap<>();
         this.chatClients = new HashMap<>();
-        this.chatModels.forEach((provider, model) -> {
-            ChatClient chatClient = ChatClient.builder(model)
+        
+        // Register DashScope
+        if (dashScopeChatModel != null) {
+            this.chatModels.put("dashscope", dashScopeChatModel);
+            ChatClient dashscopeClient = ChatClient.builder(dashScopeChatModel)
                     .defaultAdvisors(new SimpleLoggerAdvisor())
                     .build();
-            this.chatClients.put(provider, chatClient);
-            logger.info("Registered ChatModel for provider: {}, model: {}", provider, model);
-        });
+            this.chatClients.put("dashscope", dashscopeClient);
+            logger.info("Registered ChatModel for provider: dashscope");
+        }
+        
+        // Register Ollama
+        if (ollamaChatModel != null) {
+            this.chatModels.put("ollama", ollamaChatModel);
+            ChatClient ollamaClient = ChatClient.builder(ollamaChatModel)
+                    .defaultAdvisors(new SimpleLoggerAdvisor())
+                    .build();
+            this.chatClients.put("ollama", ollamaClient);
+            logger.info("Registered ChatModel for provider: ollama");
+        }
+        
+        // Register OpenAI
+        if (openAiChatModel != null) {
+            this.chatModels.put("openai", openAiChatModel);
+            ChatClient openaiClient = ChatClient.builder(openAiChatModel)
+                    .defaultAdvisors(new SimpleLoggerAdvisor())
+                    .build();
+            this.chatClients.put("openai", openaiClient);
+            logger.info("Registered ChatModel for provider: openai");
+        }
+        
+        logger.info("AIConfiguration initialized with {} providers", this.chatClients.size());
     }
 
     public ChatModel getChatModel(String provider) {
-        return this.chatModels.get(provider);
+        ChatModel model = this.chatModels.get(provider);
+        if (model == null) {
+            logger.warn("ChatModel not found for provider: {}, using default: {}", provider, defaultProvider);
+            return this.chatModels.get(defaultProvider);
+        }
+        return model;
     }
 
     public ChatClient getChatClient(String provider) {
-        return this.chatClients.get(provider);
+        ChatClient client = this.chatClients.get(provider);
+        if (client == null) {
+            logger.warn("ChatClient not found for provider: {}, using default: {}", provider, defaultProvider);
+            return this.chatClients.get(defaultProvider);
+        }
+        return client;
     }
 
     public ChatClient getDefaultChatClient() {
         return this.chatClients.get(defaultProvider);
+    }
+    
+    public String getDefaultProvider() {
+        return defaultProvider;
+    }
+    
+    public Map<String, ChatClient> getAllChatClients() {
+        return new HashMap<>(chatClients);
     }
 }

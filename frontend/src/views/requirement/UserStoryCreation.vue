@@ -130,6 +130,13 @@
                     </el-tag>
                 </div>
                 
+                <!-- AI Provider Selector for Clarification -->
+                <AIProviderSelector
+                    v-if="!loadingClarification && clarificationQuestions.length === 0"
+                    v-model="selectedClarificationProvider"
+                    :disabled="loadingClarification"
+                />
+                
                 <!-- Prompt Template Selector for Clarification -->
                 <PromptTemplateSelector
                     v-if="!loadingClarification && clarificationQuestions.length === 0"
@@ -155,6 +162,13 @@
                 <div v-else-if="clarificationQuestions.length > 0" class="questions-container">
                     <!-- Regenerate section for edit mode -->
                     <div class="regenerate-section">
+                        
+                        <!-- AI Provider Selector for Regeneration -->
+                        <AIProviderSelector
+                            v-if="!loadingClarification"
+                            v-model="selectedClarificationProvider"
+                            :disabled="loadingClarification"
+                        />
                         
                         <!-- Prompt Template Selector for Regeneration -->
                         <PromptTemplateSelector
@@ -232,6 +246,13 @@
                     </div>
                 </div>
                 
+                <!-- AI Provider Selector for Optimization -->
+                <AIProviderSelector
+                    v-if="!loadingOptimization && !optimizationResult.optimizedRequirement"
+                    v-model="selectedOptimizationProvider"
+                    :disabled="loadingOptimization"
+                />
+                
                 <!-- Prompt Template Selector for Optimization -->
                 <PromptTemplateSelector
                     v-if="!loadingOptimization && !optimizationResult.optimizedRequirement"
@@ -256,7 +277,15 @@
                 
                 <div v-else-if="optimizationResult.optimizedRequirement" class="optimization-result">
                     <!-- Regenerate section for edit mode -->
-                    <div class="regenerate-section">                       
+                    <div class="regenerate-section">
+                        
+                        <!-- AI Provider Selector for Regeneration -->
+                        <AIProviderSelector
+                            v-if="!loadingOptimization"
+                            v-model="selectedOptimizationProvider"
+                            :disabled="loadingOptimization"
+                        />
+                        
                         <!-- Prompt Template Selector for Regeneration -->
                         <PromptTemplateSelector
                             v-if="!loadingOptimization"
@@ -350,6 +379,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Loading, InfoFilled } from '@element-plus/icons-vue'
 import MilkdownEditor from '@/components/MilkdownEditor.vue'
 import PromptTemplateSelector from '@/components/PromptTemplateSelector.vue'
+import AIProviderSelector from '@/components/AIProviderSelector.vue'
 import { MilkdownProvider } from "@milkdown/vue"
 import aiApi, { ClarificationQuestion, QuestionAnswer } from '@/api/backend-api'
 // User ID from Pinia store
@@ -377,6 +407,10 @@ const clarificationPromptContent = ref<string>('')
 const optimizationTemplateId = ref<string | null>(null)
 const optimizationPromptContent = ref<string>('')
 const userId = ref<string | null >(userStore().getUserId);
+
+// AI Provider state
+const selectedClarificationProvider = ref<string>('')
+const selectedOptimizationProvider = ref<string>('')
 
 console.log('User ID:', userId.value)
 console.log('user store:', userStore())
@@ -598,6 +632,7 @@ const generateClarificationQuestions = async () => {
             title: userStory.title,
             projectId: userStory.projectId || undefined,
             promptTemplateId: clarificationTemplateId.value || undefined,
+            provider: selectedClarificationProvider.value || undefined,
         })
 
         if (response.data.success) {
@@ -675,6 +710,7 @@ const generateOptimization = async () => {
             clarificationAnswers,
             projectId: userStory.projectId || undefined,
             promptTemplateId: optimizationTemplateId.value || undefined,
+            provider: selectedOptimizationProvider.value || undefined,
         })
 
         if (response.data.success) {

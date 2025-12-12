@@ -22,6 +22,9 @@ public class RequirementOptimizationRequest {
     // Custom prompt template ID (optional, if user wants to use specific template)
     private String promptTemplateId;
     
+    // AI provider to use (dashscope, ollama, openai). If not specified, uses default provider
+    private String provider;
+    
     @NotEmpty(message = "Clarification answers cannot be empty")
     private List<QuestionAnswer> clarificationAnswers;
 
@@ -76,6 +79,14 @@ public class RequirementOptimizationRequest {
 
     public void setPromptTemplateId(String promptTemplateId) {
         this.promptTemplateId = promptTemplateId;
+    }
+    
+    public String getProvider() {
+        return provider;
+    }
+    
+    public void setProvider(String provider) {
+        this.provider = provider;
     }
 
     public List<QuestionAnswer> getClarificationAnswers() {

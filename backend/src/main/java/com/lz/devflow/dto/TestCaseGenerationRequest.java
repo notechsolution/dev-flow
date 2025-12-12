@@ -10,6 +10,9 @@ public class TestCaseGenerationRequest {
     private String optimizedDescription;
     
     private String projectContext;
+    
+    // AI provider to use (dashscope, ollama, openai). If not specified, uses default provider
+    private String provider;
 
     public TestCaseGenerationRequest() {}
 
@@ -41,5 +44,13 @@ public class TestCaseGenerationRequest {
 
     public void setProjectContext(String projectContext) {
         this.projectContext = projectContext;
+    }
+    
+    public String getProvider() {
+        return provider;
+    }
+    
+    public void setProvider(String provider) {
+        this.provider = provider;
     }
 }
