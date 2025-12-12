@@ -2,6 +2,7 @@ package com.lz.devflow.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lz.devflow.configuration.AIConfiguration;
 import com.lz.devflow.constant.PromptType;
 import com.lz.devflow.dto.*;
 import com.lz.devflow.service.AIService;
@@ -38,21 +39,21 @@ public class UnifiedAIServiceImpl implements AIService {
 
     private static final Logger logger = LoggerFactory.getLogger(UnifiedAIServiceImpl.class);
 
-    private final ChatClient chatClient;
+    private final ChatClient defaultChatClient;
     private final ObjectMapper objectMapper;
     private final String clarificationPromptTemplate;
     private final String optimizationPromptTemplate;
     private final String providerType;
     private final PromptTemplateService promptTemplateService;
+    private final AIConfiguration aiConfiguration;
 
     public UnifiedAIServiceImpl(
-            ChatClient chatClient,
             PromptTemplateService promptTemplateService,
             @Value("classpath:prompts/requirement-clarification.st") Resource clarificationPrompt,
             @Value("classpath:prompts/requirement-optimization.st") Resource optimizationPrompt,
             @Value("${ai.provider:qwen}") String providerType) throws IOException {
         
-        this.chatClient = chatClient;
+        this.defaultChatClient = aiConfiguration.getDefaultChatClient();
         this.promptTemplateService = promptTemplateService;
         this.objectMapper = new ObjectMapper();
         this.providerType = providerType;
@@ -109,7 +110,7 @@ public class UnifiedAIServiceImpl implements AIService {
             );
             
             Prompt prompt = new Prompt(new UserMessage(promptText));
-            ChatResponse response = chatClient.prompt(prompt).call().chatResponse();
+            ChatResponse response = defaultChatClient.prompt(prompt).call().chatResponse();
             String content = response.getResult().getOutput().getText();
             
             List<String> testCases = parseTestCasesFromJson(content);
@@ -142,7 +143,7 @@ public class UnifiedAIServiceImpl implements AIService {
             logger.debug("Calling AI provider with clarification prompt");
             
             Prompt prompt = new Prompt(new UserMessage(promptText));
-            ChatResponse response = chatClient.prompt(prompt).call().chatResponse();
+            ChatResponse response = defaultChatClient.prompt(prompt).call().chatResponse();
             String content = response.getResult().getOutput().getText();
             
             logger.debug("Received response from AI: {}", content.substring(0, Math.min(200, content.length())));
@@ -189,7 +190,7 @@ public class UnifiedAIServiceImpl implements AIService {
             logger.debug("Calling AI provider with optimization prompt");
             
             Prompt prompt = new Prompt(new UserMessage(promptText));
-            ChatResponse response = chatClient.prompt(prompt).call().chatResponse();
+            ChatResponse response = defaultChatClient.prompt(prompt).call().chatResponse();
             String content = response.getResult().getOutput().getText();
             
             logger.debug("Received optimization response from AI");

@@ -1,0 +1,84 @@
+# Conversion to YAML from Properties formar report
+# Warnings:
+# - The yaml file had comments which are lost in the refactoring!
+spring:
+  profiles:
+    active: local
+  servlet:
+    multipart:
+      max-file-size: 5MB
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY:dummy-api-key}
+      chat:
+        options:
+          model: ${QWEN_MODEL:qwen3-max}
+          temperature: 0.2
+          max-tokens: 10000
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        options:
+          model: ${OLLAMA_MODEL:llama2}
+          temperature: ${OLLAMA_TEMPERATURE:0.2}
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      base-url: https://api.openai-hk.com
+  mail:
+    host: ${MAIL_HOST:smtp.163.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:your-email@163.com}
+    password: ${MAIL_PASSWORD:your-app-password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+            trust: ${MAIL_HOST:smtp.163.com}
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+            port: 465
+server:
+  port: 8099
+application:
+  name: DevFlow
+  version: '@project.version@'
+  build:
+    time: '@maven.build.timestamp@'
+oauth2:
+  config:
+    name: ${OAUTH2_CONFIG_NAME:aad}
+  client:
+    registration:
+      github:
+        client-id: ${GITHUB_CLIENT_ID:xxx}
+        client-secret: ${GITHUB_CLIENT_SECRET:xxx}
+mongodb:
+  encrypt:
+    keys:
+      '0':
+        version: ${MONGODB_ENCRYPT_KEYS_VERSION_1:1}
+        key: ${MONGODB_ENCRYPT_KEYS_KEY_1:V21acTR0N3cheiVDKkYtSmFOZFJnVWtYcDJyNXU4eC8=}
+  url: ${MONGODB_URI:mongodb://127.0.0.1:27017/devflow}
+  database:
+    name: ${MONGODB_DATABASE_NAME:devflow}
+security:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY_BASE64:Ti8kN3pwUlB2QklxKG5uRGlAL2w/NX0xP3hsUnpTd3o=}
+crypto:
+  secret:
+    key: ${CRYPTO_SECRET_KEY:LeeFlowSecretKey1234567890123456}
+dify:
+  api:
+    base-url: ${DIFY_API_BASE_URL:https://api.dify.ai/v1}
+    key:
+      user-story-optimization: ${DIFY_API_KEY_USER_STORY:}
+      test-case-generation: ${DIFY_API_KEY_TEST_CASE:}
+ai:
+  service:
+    implementation: ${AI_SERVICE_IMPLEMENTATION:unified}
+  provider-default: ${AI_PROVIDER_DEFAULT:dashscope}
+app:
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:8080}

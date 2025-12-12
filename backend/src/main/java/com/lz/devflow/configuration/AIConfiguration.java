@@ -21,72 +21,47 @@ import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
 /**
  * AI Configuration for multiple providers
  * Supports switching between different AI providers (Qwen/DashScope, Ollama, etc.)
- * 
- * Priority:
- * 1. If ai.provider=ollama: Create OllamaChatModel (manual config)
- * 2. Otherwise: Use DashScopeChatModel (auto-config from spring-ai-alibaba)
  */
 @Configuration
-@AutoConfigureBefore(name = "com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeChatAutoConfiguration")
 public class AIConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(AIConfiguration.class);
+    private final Map<String, ChatModel> chatModels;
+    private final Map<String, ChatClient> chatClients;
+    @Value("${ai.provider-default}")
+    private String defaultProvider;
 
-    /**
-     * Configuration for Ollama provider - Manual Configuration with High Priority
-     * Activated when ai.provider=ollama
-     * 
-     * This bean is created BEFORE spring-ai-alibaba's auto-configuration
-     * to prevent DashScopeChatModel from being created.
-     */
-    @Configuration
-    @ConditionalOnProperty(name = "ai.provider", havingValue = "ollama")
-    public static class OllamaConfiguration {
+    // constructor with all chat models
+    public AIConfiguration(
+            DashScopeChatModel dashScopeChatModel,
+            OllamaChatModel ollamaChatModel,
+            OpenAiChatModel openAiChatModel) {
         
-        @Bean
-        @Primary
-        public ChatModel ollamaChatModel(
-                @Value("${spring.ai.ollama.base-url:http://localhost:11434}") String baseUrl,
-                @Value("${spring.ai.ollama.chat.options.model:llama2}") String model,
-                @Value("${spring.ai.ollama.chat.options.temperature:0.7}") Double temperature) {
-            
-            logger.info("Manually configuring Ollama ChatModel with base-url: {}, model: {}", baseUrl, model);
-            
-            OllamaApi ollamaApi = OllamaApi.builder().baseUrl(baseUrl).build();
-            
-            OllamaOptions options = OllamaOptions.builder()
-                    .model(model)
-                    .temperature(temperature)
+        // store these models as map
+        this.chatModels = Map.of(
+            "dashscope", dashScopeChatModel,
+            "ollama", ollamaChatModel,
+            "openai", openAiChatModel
+        );
+        this.chatClients = new HashMap<>();
+        this.chatModels.forEach((provider, model) -> {
+            ChatClient chatClient = ChatClient.builder(model)
+                    .defaultAdvisors(new SimpleLoggerAdvisor())
                     .build();
-            
-            return OllamaChatModel.builder()
-                    .ollamaApi(ollamaApi)
-                    .defaultOptions(options)
-                    .build();
-        }
+            this.chatClients.put(provider, chatClient);
+            logger.info("Registered ChatModel for provider: {}, model: {}", provider, model);
+        });
     }
 
-    /**
-     * Configuration for DashScope (Qwen) provider
-     * Activated when ai.provider=qwen (default) or not set
-     * 
-     * DashScopeChatModel will be auto-configured by spring-ai-alibaba-starter
-     * only if no other ChatModel bean exists.
-     */
-    @Configuration
-    @ConditionalOnProperty(name = "ai.provider", havingValue = "qwen", matchIfMissing = true)
-    @ConditionalOnMissingBean(ChatModel.class)
-    public static class QwenConfiguration {
-        
-        public QwenConfiguration() {
-            logger.info("Using DashScope (Qwen) ChatModel from spring-ai-alibaba auto-configuration");
-        }
+    public ChatModel getChatModel(String provider) {
+        return this.chatModels.get(provider);
     }
 
-    @Bean
-    public ChatClient chatClient(ChatModel chatModel) {
-        return ChatClient.builder(chatModel)
-                .defaultAdvisors(new SimpleLoggerAdvisor())
-                .build();
+    public ChatClient getChatClient(String provider) {
+        return this.chatClients.get(provider);
+    }
+
+    public ChatClient getDefaultChatClient() {
+        return this.chatClients.get(defaultProvider);
     }
 }

@@ -1,0 +1,21 @@
+# Conversion to YAML from Properties formar report
+# Errors:
+# - Direct assignment 'logging.level.org.springframework.security=INFO' can not be combined with sub-property assignment 'logging.level.org.springframework.security.web...'. Direct assignment is dropped!
+# Warnings:
+# - The yaml file had comments which are lost in the refactoring!
+logging:
+  level:
+    org:
+      springframework:
+        security:
+          web: INFO
+          config: INFO
+        web: INFO
+        data:
+          mongodb:
+            core:
+              MongoTemplate: DEBUG
+    com:
+      lz: DEBUG
+server:
+  address: 0.0.0.0
