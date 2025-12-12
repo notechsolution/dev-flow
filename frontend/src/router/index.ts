@@ -1,4 +1,6 @@
 import {createRouter, createWebHistory} from 'vue-router'
+import { userStore } from '@/store/user'
+import { ElMessage } from 'element-plus'
 
 const routes = [
     {
@@ -69,6 +71,11 @@ const routes = [
             {
                 path: "/user/prompt-settings",
                 component: () => import('@/views/user/UserPromptSettings.vue')
+            },
+            {
+                path: "/admin/ai-providers",
+                component: () => import('@/views/admin/AIProviderManagement.vue'),
+                meta: { requiresOperator: true }
             }
         ]
     },
@@ -79,6 +86,22 @@ const routes = [
 const router = createRouter({
     history: createWebHistory(), // uris without hashes #, see https://router.vuejs.org/guide/essentials/history-mode.html#html5-history-mode
     routes
+});
+
+// Navigation guard for role-based access control
+router.beforeEach((to, from, next) => {
+    const user = userStore();
+    
+    // Check if route requires OPERATOR role
+    if (to.meta.requiresOperator) {
+        if (user.role !== 'OPERATOR') {
+            ElMessage.error('此页面仅限运维人员访问');
+            next(from.path || '/dashboard');
+            return;
+        }
+    }
+    
+    next();
 });
 
 export default router;

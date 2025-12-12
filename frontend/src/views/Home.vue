@@ -118,6 +118,20 @@
                                         <span>提示词管理</span>
                                     </template>
                                 </el-menu-item>
+                                <el-menu-item v-if="store.role === 'OPERATOR'"
+                                              key="/admin/ai-providers" index="/admin/ai-providers">
+                                    <template #title>
+                                        <el-icon>
+                                            <svg height="1em" viewBox="0 0 24 24" width="1em"
+                                                 xmlns="http://www.w3.org/2000/svg">
+                                                <path
+                                                    d="M12 2a9 9 0 0 1 9 9c0 3.074-1.676 5.59-3.442 7.395a20.441 20.441 0 0 1-2.876 2.416l-.426.29l-.2.133l-.377.24l-.336.205l-.416.242a1.874 1.874 0 0 1-1.854 0l-.416-.242l-.52-.32l-.192-.125l-.41-.273a20.638 20.638 0 0 1-3.093-2.566C4.676 16.589 3 14.074 3 11a9 9 0 0 1 9-9zm0 1.5a7.5 7.5 0 0 0-7.5 7.5c0 2.552 1.4 4.665 3.02 6.317a18.942 18.942 0 0 0 2.811 2.246l.383.263l.286.187l.342.214l.278.166a.374.374 0 0 0 .368-.001l.632-.378l.227-.145l.388-.26a18.947 18.947 0 0 0 2.963-2.392C18.6 15.665 20 13.552 20 11a7.5 7.5 0 0 0-7.5-7.5zm0 3.75a3 3 0 1 1 0 6a3 3 0 0 1 0-6zm0 1.5a1.5 1.5 0 1 0 0 3a1.5 1.5 0 0 0 0-3z"
+                                                    fill="currentColor"></path>
+                                            </svg>
+                                        </el-icon>
+                                        <span>AI提供商管理</span>
+                                    </template>
+                                </el-menu-item>
                             </el-menu>
                         </el-aside>
                         <el-main class="p-0">

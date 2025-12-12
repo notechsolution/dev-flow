@@ -60,7 +60,7 @@ public class UnifiedAIServiceImpl implements AIService {
         this.optimizationPromptTemplate = optimizationPrompt.getContentAsString(StandardCharsets.UTF_8);
         
         logger.info("UnifiedAIServiceImpl initialized with default provider: {}", 
-                    providerType);
+                    aiConfiguration.getDefaultProvider());
     }
 
     @Override

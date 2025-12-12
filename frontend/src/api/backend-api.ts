@@ -447,6 +447,43 @@ export default {
     
     deleteProject(id: string): Promise<AxiosResponse<{ success: boolean; message: string }>> {
         return axiosApi.delete(`/projects/${id}`, getHeaders());
+    },
+
+     // ========== AI Provider Management APIs (OPERATOR only) ==========
+    
+    // Get all AI provider configurations
+    getAllAIProviders(): Promise<AxiosResponse<AIProviderManagementResponse>> {
+        return axiosApi.get('/admin/ai-providers', getHeaders());
+    },
+
+    // Get specific AI provider configuration
+    getAIProvider(id: string): Promise<AxiosResponse<AIProviderResponse>> {
+        return axiosApi.get(`/admin/ai-providers/${id}`, getHeaders());
+    },
+
+    // Create new AI provider configuration
+    createAIProvider(config: AIProviderConfigRequest): Promise<AxiosResponse<AIProviderResponse>> {
+        return axiosApi.post('/admin/ai-providers', config, getHeaders());
+    },
+
+    // Update AI provider configuration
+    updateAIProvider(id: string, config: AIProviderConfigRequest): Promise<AxiosResponse<AIProviderResponse>> {
+        return axiosApi.put(`/admin/ai-providers/${id}`, config, getHeaders());
+    },
+
+    // Toggle AI provider enabled/disabled
+    toggleAIProvider(id: string, enabled: boolean): Promise<AxiosResponse<AIProviderResponse>> {
+        return axiosApi.patch(`/admin/ai-providers/${id}/toggle`, { enabled }, getHeaders());
+    },
+
+    // Delete AI provider configuration
+    deleteAIProvider(id: string): Promise<AxiosResponse<{ success: boolean; message: string }>> {
+        return axiosApi.delete(`/admin/ai-providers/${id}`, getHeaders());
+    },
+
+    // Initialize default AI provider configurations
+    initializeDefaultAIProviders(): Promise<AxiosResponse<{ success: boolean; message: string }>> {
+        return axiosApi.post('/admin/ai-providers/initialize', {}, getHeaders());
     }
 }
 
@@ -477,6 +514,53 @@ export interface PromptTemplateResponse {
     updatedAt: string;
     createdBy?: string;
     updatedBy?: string;
+}
+
+// ========== AI Provider Management Types ==========
+
+export interface ModelConfig {
+    name: string;
+    displayName: string;
+    description?: string;
+}
+
+export interface AIProviderConfig {
+    id?: string;
+    provider: string;
+    displayName: string;
+    description?: string;
+    enabled: boolean;
+    apiKey?: string;
+    baseUrl?: string;
+    models: ModelConfig[];
+    defaultModel: string;
+    createdAt?: string;
+    updatedAt?: string;
+    createdBy?: string;
+    updatedBy?: string;
+}
+
+export interface AIProviderConfigRequest {
+    provider: string;
+    displayName: string;
+    description?: string;
+    enabled: boolean;
+    apiKey?: string;
+    baseUrl?: string;
+    models: ModelConfig[];
+    defaultModel: string;
+}
+
+export interface AIProviderResponse {
+    success: boolean;
+    data: AIProviderConfig;
+    message: string;
+}
+
+export interface AIProviderManagementResponse {
+    success: boolean;
+    data: AIProviderConfig[];
+    message: string;
 }
 
 // Prompt Template API methods
@@ -530,6 +614,10 @@ export const promptTemplateApi = {
     deleteTemplate(id: string): Promise<AxiosResponse<void>> {
         return axiosApi.delete(`/prompt-templates/${id}`, getHeaders());
     }
+
+   
 }
+
+
 
 
