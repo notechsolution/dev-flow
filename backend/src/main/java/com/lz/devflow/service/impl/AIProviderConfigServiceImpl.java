@@ -158,16 +158,15 @@ public class AIProviderConfigServiceImpl implements AIProviderConfigService {
         if (!repository.existsByProvider("dashscope")) {
             AIProviderConfig dashscope = new AIProviderConfig();
             dashscope.setProvider("dashscope");
-            dashscope.setDisplayName("DashScope (通义千问)");
+            dashscope.setDisplayName("DashScope (百炼)");
             dashscope.setDescription("阿里云通义千问大模型");
             dashscope.setEnabled(true);
             dashscope.setBaseUrl("https://dashscope.aliyuncs.com/api/v1");
             dashscope.setModels(Arrays.asList(
-                    new AIProviderConfig.ModelConfig("qwen-turbo", "通义千问-Turbo", "快速响应模型", true),
-                    new AIProviderConfig.ModelConfig("qwen-plus", "通义千问-Plus", "平衡性能模型", true),
-                    new AIProviderConfig.ModelConfig("qwen-max", "通义千问-Max", "最强性能模型", true)
+                    new AIProviderConfig.ModelConfig("qwen3-code-plus", "通义千问代码-Plus", "代码生成专用模型", true),
+                    new AIProviderConfig.ModelConfig("qwen3-max", "通义千问-Max", "最强性能模型", true)
             ));
-            dashscope.setDefaultModel("qwen-turbo");
+            dashscope.setDefaultModel("qwen3-max");
             dashscope.setCreatedAt(LocalDateTime.now());
             dashscope.setUpdatedAt(LocalDateTime.now());
             repository.save(dashscope);
@@ -183,11 +182,10 @@ public class AIProviderConfigServiceImpl implements AIProviderConfigService {
             ollama.setEnabled(true);
             ollama.setBaseUrl("http://localhost:11434");
             ollama.setModels(Arrays.asList(
-                    new AIProviderConfig.ModelConfig("llama2", "Llama 2", "Meta的开源模型", true),
-                    new AIProviderConfig.ModelConfig("mistral", "Mistral", "高性能开源模型", true),
-                    new AIProviderConfig.ModelConfig("codellama", "Code Llama", "代码生成专用模型", true)
+                    new AIProviderConfig.ModelConfig("qwen3:8b", "Qwen 3 8B", "阿里云百炼大模型", true),
+                    new AIProviderConfig.ModelConfig("qwen3:32b", "Qwen 3 32B", "高性能开源模型", true)
             ));
-            ollama.setDefaultModel("llama2");
+            ollama.setDefaultModel("qwen3:8b");
             ollama.setCreatedAt(LocalDateTime.now());
             ollama.setUpdatedAt(LocalDateTime.now());
             repository.save(ollama);

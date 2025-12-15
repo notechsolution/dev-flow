@@ -170,12 +170,12 @@
               class="model-item"
             >
               <el-input
-                v-model="model.name"
+                v-model="model.modelId"
                 placeholder="模型代码"
                 style="width: 30%"
               />
               <el-input
-                v-model="model.displayName"
+                v-model="model.modelName"
                 placeholder="显示名称"
                 style="width: 30%"
               />
@@ -211,9 +211,9 @@
           >
             <el-option
               v-for="model in formData.models"
-              :key="model.name"
-              :label="model.displayName"
-              :value="model.name"
+              :key="model.modelId"
+              :label="model.modelId + '(' + model.modelName + ')'"
+              :value="model.modelId"
             />
           </el-select>
         </el-form-item>

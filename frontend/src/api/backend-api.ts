@@ -519,8 +519,8 @@ export interface PromptTemplateResponse {
 // ========== AI Provider Management Types ==========
 
 export interface ModelConfig {
-    name: string;
-    displayName: string;
+    modelId: string;
+    modelName: string;
     description?: string;
 }
 
