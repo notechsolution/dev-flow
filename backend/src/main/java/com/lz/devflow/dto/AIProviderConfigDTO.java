@@ -3,7 +3,8 @@ package com.lz.devflow.dto;
 import java.util.List;
 
 /**
- * DTO for AI Provider Configuration
+ * DTO for AI Provider Configuration (Read-Only)
+ * API keys are not exposed - configured in application.yml
  */
 public class AIProviderConfigDTO {
     
@@ -12,8 +13,8 @@ public class AIProviderConfigDTO {
     private String displayName;
     private String description;
     private boolean enabled;
-    private String apiKey; // For display, will be masked
-    private String baseUrl;
+    // API key removed - not exposed to frontend
+    private String baseUrl; // Read-only from application.yml
     private List<ModelConfigDTO> models;
     private String defaultModel;
     
@@ -109,14 +110,6 @@ public class AIProviderConfigDTO {
     
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
-    }
-    
-    public String getApiKey() {
-        return apiKey;
-    }
-    
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
     }
     
     public String getBaseUrl() {

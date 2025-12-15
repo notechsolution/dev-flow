@@ -13,6 +13,9 @@ public class TestCaseGenerationRequest {
     
     // AI provider to use (dashscope, ollama, openai). If not specified, uses default provider
     private String provider;
+    
+    // AI model to use (e.g., qwen-turbo, gpt-4). If not specified, uses provider's default model
+    private String model;
 
     public TestCaseGenerationRequest() {}
 
@@ -52,5 +55,13 @@ public class TestCaseGenerationRequest {
     
     public void setProvider(String provider) {
         this.provider = provider;
+    }
+    
+    public String getModel() {
+        return model;
+    }
+    
+    public void setModel(String model) {
+        this.model = model;
     }
 }

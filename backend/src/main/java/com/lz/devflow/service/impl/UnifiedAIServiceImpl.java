@@ -1,5 +1,6 @@
 package com.lz.devflow.service.impl;
 
+import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lz.devflow.configuration.AIConfiguration;
@@ -12,7 +13,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.ollama.api.OllamaOptions;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
@@ -66,7 +70,9 @@ public class UnifiedAIServiceImpl implements AIService {
     @Override
     public UserStoryOptimizationResponse optimizeUserStory(UserStoryOptimizationRequest request) {
         String provider = getEffectiveProvider(request.getProvider());
-        logger.info("Optimizing user story using provider: {}", provider);
+        String model = request.getModel();
+        logger.info("Optimizing user story using provider: {}, model: {}", provider,
+                    model != null ? model : "default");
         
         try {
             RequirementOptimizationRequest optimizationRequest = new RequirementOptimizationRequest();
@@ -75,6 +81,7 @@ public class UnifiedAIServiceImpl implements AIService {
             optimizationRequest.setProjectContext(request.getProjectContext());
             optimizationRequest.setClarificationAnswers(new ArrayList<>());
             optimizationRequest.setProvider(provider);
+            optimizationRequest.setModel(model);
             
             RequirementOptimizationResponse response = optimizeRequirementWithClarification(optimizationRequest);
             
@@ -92,7 +99,9 @@ public class UnifiedAIServiceImpl implements AIService {
     @Override
     public TestCaseGenerationResponse generateTestCases(TestCaseGenerationRequest request) {
         String provider = getEffectiveProvider(request.getProvider());
-        logger.info("Generating test cases using provider: {}", provider);
+        String model = request.getModel();
+        logger.info("Generating test cases using provider: {}, model: {}", provider,
+                    model != null ? model : "default");
         
         try {
             String description = request.getOptimizedDescription() != null && !request.getOptimizedDescription().trim().isEmpty()
@@ -109,8 +118,11 @@ public class UnifiedAIServiceImpl implements AIService {
                 description
             );
             
-            ChatClient chatClient = aiConfiguration.getChatClient(provider);
-            Prompt prompt = new Prompt(new UserMessage(promptText));
+            ChatClient chatClient = aiConfiguration.getChatClientForModel(provider, model);
+            ChatOptions chatOptions = createChatOptions(provider, model);
+            Prompt prompt = chatOptions != null 
+                    ? new Prompt(new UserMessage(promptText), chatOptions)
+                    : new Prompt(new UserMessage(promptText));
             ChatResponse response = chatClient.prompt(prompt).call().chatResponse();
             String content = response.getResult().getOutput().getText();
             
@@ -127,7 +139,9 @@ public class UnifiedAIServiceImpl implements AIService {
     @Override
     public RequirementClarificationResponse generateClarificationQuestions(RequirementClarificationRequest request) {
         String provider = getEffectiveProvider(request.getProvider());
-        logger.info("Generating clarification questions using provider: {}", provider);
+        String model = request.getModel();
+        logger.info("Generating clarification questions using provider: {}, model: {}", provider, 
+                    model != null ? model : "default");
         
         try {
             // Get effective prompt template
@@ -144,8 +158,12 @@ public class UnifiedAIServiceImpl implements AIService {
             
             logger.debug("Calling AI provider {} with clarification prompt", provider);
             
-            ChatClient chatClient = aiConfiguration.getChatClient(provider);
-            Prompt prompt = new Prompt(new UserMessage(promptText));
+            ChatClient chatClient = aiConfiguration.getChatClientForModel(provider, model);
+            ChatOptions chatOptions = createChatOptions(provider, model);
+            Prompt prompt = chatOptions != null 
+                    ? new Prompt(new UserMessage(promptText), chatOptions)
+                    : new Prompt(new UserMessage(promptText));
+            
             ChatResponse response = chatClient.prompt(prompt).call().chatResponse();
             String content = response.getResult().getOutput().getText();
             
@@ -170,7 +188,9 @@ public class UnifiedAIServiceImpl implements AIService {
     @Override
     public RequirementOptimizationResponse optimizeRequirementWithClarification(RequirementOptimizationRequest request) {
         String provider = getEffectiveProvider(request.getProvider());
-        logger.info("Optimizing requirement with clarification using provider: {}", provider);
+        String model = request.getModel();
+        logger.info("Optimizing requirement with clarification using provider: {}, model: {}", provider,
+                    model != null ? model : "default");
         
         try {
             StringBuilder qaBuilder = new StringBuilder();
@@ -193,8 +213,11 @@ public class UnifiedAIServiceImpl implements AIService {
             
             logger.debug("Calling AI provider {} with optimization prompt", provider);
             
-            ChatClient chatClient = aiConfiguration.getChatClient(provider);
-            Prompt prompt = new Prompt(new UserMessage(promptText));
+            ChatClient chatClient = aiConfiguration.getChatClientForModel(provider, model);
+            ChatOptions chatOptions = createChatOptions(provider, model);
+            Prompt prompt = chatOptions != null 
+                    ? new Prompt(new UserMessage(promptText), chatOptions)
+                    : new Prompt(new UserMessage(promptText));
             ChatResponse response = chatClient.prompt(prompt).call().chatResponse();
             String content = response.getResult().getOutput().getText();
             
@@ -417,5 +440,38 @@ public class UnifiedAIServiceImpl implements AIService {
             }
         }
         return aiConfiguration.getDefaultProvider();
+    }
+    
+    /**
+     * Create ChatOptions with specified model for different providers
+     * 
+     * @param provider AI provider name (dashscope, ollama, openai)
+     * @param model model name to use (can be null for default)
+     * @return ChatOptions configured with the specified model, or null if model is not specified
+     */
+    private ChatOptions createChatOptions(String provider, String model) {
+        if (model == null || model.trim().isEmpty()) {
+            return null;
+        }
+        
+        logger.debug("Creating ChatOptions for provider: {}, model: {}", provider, model);
+        
+        switch (provider.toLowerCase()) {
+            case "dashscope":
+                return DashScopeChatOptions.builder()
+                        .withModel(model)
+                        .build();
+            case "ollama":
+                return OllamaOptions.builder()
+                        .model(model)
+                        .build();
+            case "openai":
+                return OpenAiChatOptions.builder()
+                        .model(model)
+                        .build();
+            default:
+                logger.warn("Unknown provider '{}', cannot create ChatOptions", provider);
+                return null;
+        }
     }
 }

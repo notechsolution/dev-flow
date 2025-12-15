@@ -3,7 +3,6 @@ package com.lz.devflow.controller;
 import com.lz.devflow.dto.AIProviderConfigDTO;
 import com.lz.devflow.service.AIProviderConfigService;
 import jakarta.annotation.Resource;
-import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +15,8 @@ import java.util.Map;
 /**
  * REST Controller for AI Provider Configuration Management
  * Only accessible by OPERATOR role
+ * AI providers (name, API key, API URL) are configured in application.yml and initialized at startup
+ * Models list and default model can be updated via API
  */
 @RestController
 @RequestMapping("/api/admin/ai-providers")
@@ -29,7 +30,7 @@ public class AIProviderManagementController {
     private AIProviderConfigService providerConfigService;
     
     /**
-     * Get all AI provider configurations
+     * Get all AI provider configurations (Read-Only)
      */
     @GetMapping
     public ResponseEntity<Map<String, Object>> getAllProviders() {
@@ -52,7 +53,7 @@ public class AIProviderManagementController {
     }
     
     /**
-     * Get specific provider configuration
+     * Get specific provider configuration (Read-Only)
      */
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getProvider(@PathVariable String id) {
@@ -67,55 +68,6 @@ public class AIProviderManagementController {
             ));
         } catch (Exception e) {
             logger.error("Error getting AI provider: {}", id, e);
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
-    }
-    
-    /**
-     * Create new provider configuration
-     */
-    @PostMapping
-    public ResponseEntity<Map<String, Object>> createProvider(
-            @Valid @RequestBody AIProviderConfigDTO providerDTO) {
-        logger.info("Creating AI provider configuration: {}", providerDTO.getProvider());
-        
-        try {
-            AIProviderConfigDTO created = providerConfigService.createProvider(providerDTO);
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "data", created,
-                    "message", "创建AI提供商配置成功"
-            ));
-        } catch (Exception e) {
-            logger.error("Error creating AI provider", e);
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
-    }
-    
-    /**
-     * Update provider configuration
-     */
-    @PutMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> updateProvider(
-            @PathVariable String id,
-            @Valid @RequestBody AIProviderConfigDTO providerDTO) {
-        logger.info("Updating AI provider configuration: {}", id);
-        
-        try {
-            AIProviderConfigDTO updated = providerConfigService.updateProvider(id, providerDTO);
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "data", updated,
-                    "message", "更新AI提供商配置成功"
-            ));
-        } catch (Exception e) {
-            logger.error("Error updating AI provider: {}", id, e);
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
                     "message", e.getMessage()
@@ -150,45 +102,27 @@ public class AIProviderManagementController {
     }
     
     /**
-     * Delete provider configuration
+     * Update provider models and default model
+     * Only models and defaultModel can be updated, other fields are read-only
      */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> deleteProvider(@PathVariable String id) {
-        logger.info("Deleting AI provider configuration: {}", id);
+    @PutMapping("/{id}/models")
+    public ResponseEntity<Map<String, Object>> updateProviderModels(
+            @PathVariable String id,
+            @RequestBody AIProviderConfigDTO providerDTO) {
+        logger.info("Updating models for AI provider: {}", id);
         
         try {
-            providerConfigService.deleteProvider(id);
+            AIProviderConfigDTO updated = providerConfigService.updateProviderModels(id, providerDTO);
             return ResponseEntity.ok(Map.of(
                     "success", true,
-                    "message", "删除AI提供商配置成功"
+                    "data", updated,
+                    "message", "更新AI提供商模型配置成功"
             ));
         } catch (Exception e) {
-            logger.error("Error deleting AI provider: {}", id, e);
+            logger.error("Error updating AI provider models: {}", id, e);
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
                     "message", e.getMessage()
-            ));
-        }
-    }
-    
-    /**
-     * Initialize default provider configurations
-     */
-    @PostMapping("/initialize")
-    public ResponseEntity<Map<String, Object>> initializeDefaultProviders() {
-        logger.info("Initializing default AI provider configurations");
-        
-        try {
-            providerConfigService.initializeDefaultProviders();
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "默认AI提供商配置初始化成功"
-            ));
-        } catch (Exception e) {
-            logger.error("Error initializing default providers", e);
-            return ResponseEntity.internalServerError().body(Map.of(
-                    "success", false,
-                    "message", "初始化失败: " + e.getMessage()
             ));
         }
     }

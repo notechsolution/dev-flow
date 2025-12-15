@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -39,6 +40,9 @@ public class AIController {
     
     @Resource
     private AIConfiguration aiConfiguration;
+    
+    @Resource
+    private com.lz.devflow.service.AIProviderConfigService providerConfigService;
     
     @Value("${ai.provider-default:dashscope}")
     private String defaultProvider;
@@ -131,19 +135,29 @@ public class AIController {
         logger.info("AI providers list requested");
         
         try {
-            List<String> availableProviders = aiConfiguration.getAllChatClients().keySet()
-                    .stream()
+            // Get enabled providers from database
+            List<com.lz.devflow.dto.AIProviderConfigDTO> enabledProviders = providerConfigService.getEnabledProviders();
+            
+            List<String> availableProviders = enabledProviders.stream()
+                    .map(com.lz.devflow.dto.AIProviderConfigDTO::getProvider)
                     .sorted()
                     .collect(Collectors.toList());
+            
+            // Build providers info with models
+            Map<String, Map<String, Object>> providersInfo = new HashMap<>();
+            for (com.lz.devflow.dto.AIProviderConfigDTO provider : enabledProviders) {
+                Map<String, Object> info = new HashMap<>();
+                info.put("name", provider.getDisplayName());
+                info.put("description", provider.getDescription());
+                info.put("models", provider.getModels());
+                info.put("defaultModel", provider.getDefaultModel());
+                providersInfo.put(provider.getProvider(), info);
+            }
             
             Map<String, Object> response = Map.of(
                 "availableProviders", availableProviders,
                 "defaultProvider", defaultProvider,
-                "providers", Map.of(
-                    "dashscope", Map.of("name", "DashScope (阿里百炼)", "description", "阿里云百炼平台"),
-                    "ollama", Map.of("name", "Ollama", "description", "本地运行的开源大模型"),
-                    "openai", Map.of("name", "OpenAI", "description", "OpenAI GPT模型")
-                )
+                "providers", providersInfo
             );
             
             return ResponseEntity.ok(response);

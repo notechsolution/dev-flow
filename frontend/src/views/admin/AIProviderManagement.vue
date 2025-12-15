@@ -6,23 +6,24 @@
           <span class="title">AI提供商管理</span>
           <div class="actions">
             <el-button 
-              type="primary" 
-              :icon="Plus" 
-              @click="showCreateDialog"
-            >
-              添加提供商
-            </el-button>
-            <el-button 
               type="info" 
               :icon="Refresh" 
-              @click="initializeDefaults"
-              :loading="initializingDefaults"
+              @click="loadProviders"
             >
-              初始化默认配置
+              刷新
             </el-button>
           </div>
         </div>
       </template>
+
+      <el-alert
+        title="配置说明"
+        type="info"
+        :closable="false"
+        style="margin-bottom: 20px"
+      >
+        AI提供商（名称、API密钥、API地址）从 application.yml 读取，在应用启动时注入。可以编辑每个提供商的模型列表和默认模型。
+      </el-alert>
 
       <!-- Provider List -->
       <el-table 
@@ -43,19 +44,34 @@
 
         <el-table-column prop="description" label="描述" min-width="200" />
 
-        <el-table-column prop="baseUrl" label="API地址" min-width="200">
+        <el-table-column prop="baseUrl" label="API地址（只读）" min-width="250">
           <template #default="scope">
             <el-text size="small" truncated>
+              <el-icon><Lock /></el-icon>
               {{ scope.row.baseUrl || '-' }}
             </el-text>
           </template>
         </el-table-column>
 
-        <el-table-column prop="models" label="可用模型" width="150">
+        <el-table-column prop="models" label="可用模型" width="120">
           <template #default="scope">
-            <el-tag size="small" type="info">
-              {{ scope.row.models.length }} 个模型
-            </el-tag>
+            <el-popover
+              placement="top"
+              :width="300"
+              trigger="hover"
+            >
+              <template #reference>
+                <el-tag size="small" type="info" style="cursor: pointer">
+                  {{ scope.row.models.length }} 个模型
+                </el-tag>
+              </template>
+              <div>
+                <div v-for="model in scope.row.models" :key="model.modelId" style="margin-bottom: 8px">
+                  <el-text><strong>{{ model.modelId }}</strong></el-text><br/>
+                  <el-text size="small" type="info">{{ model.modelName }}</el-text>
+                </div>
+              </div>
+            </el-popover>
           </template>
         </el-table-column>
 
@@ -67,7 +83,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="enabled" label="状态" width="100">
+        <el-table-column prop="enabled" label="启用状态" width="100">
           <template #default="scope">
             <el-switch
               v-model="scope.row.enabled"
@@ -77,87 +93,49 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="120" fixed="right">
           <template #default="scope">
             <el-button
               size="small"
               type="primary"
               :icon="Edit"
-              @click="editProvider(scope.row)"
+              @click="editProviderModels(scope.row)"
             >
-              编辑
-            </el-button>
-            <el-button
-              size="small"
-              type="danger"
-              :icon="Delete"
-              @click="deleteProvider(scope.row)"
-            >
-              删除
+              编辑模型
             </el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
-    <!-- Create/Edit Dialog -->
+    <!-- Edit Models Dialog -->
     <el-dialog
       v-model="dialogVisible"
-      :title="dialogMode === 'create' ? '添加AI提供商' : '编辑AI提供商'"
+      title="编辑AI提供商模型"
       width="700px"
       :close-on-click-modal="false"
     >
+      <el-alert
+        title="提示"
+        type="info"
+        :closable="false"
+        style="margin-bottom: 20px"
+      >
+        只能编辑模型列表和默认模型，提供商名称、API地址等其他配置为只读（从application.yml读取）。
+      </el-alert>
+
       <el-form
         ref="formRef"
         :model="formData"
         :rules="formRules"
         label-width="120px"
       >
-        <el-form-item label="提供商代码" prop="provider">
-          <el-input
-            v-model="formData.provider"
-            placeholder="例如: dashscope, ollama, openai"
-            :disabled="dialogMode === 'edit'"
-          />
+        <el-form-item label="提供商">
+          <el-input :value="formData.provider" disabled />
         </el-form-item>
 
-        <el-form-item label="显示名称" prop="displayName">
-          <el-input
-            v-model="formData.displayName"
-            placeholder="例如: 阿里云DashScope"
-          />
-        </el-form-item>
-
-        <el-form-item label="描述" prop="description">
-          <el-input
-            v-model="formData.description"
-            type="textarea"
-            :rows="2"
-            placeholder="AI提供商的简短描述"
-          />
-        </el-form-item>
-
-        <el-form-item label="API地址" prop="baseUrl">
-          <el-input
-            v-model="formData.baseUrl"
-            placeholder="例如: https://dashscope.aliyuncs.com/api/v1"
-          />
-        </el-form-item>
-
-        <el-form-item label="API密钥" prop="apiKey">
-          <el-input
-            v-model="formData.apiKey"
-            type="password"
-            show-password
-            placeholder="请输入API密钥"
-          />
-          <el-text size="small" type="info">
-            密钥将被加密存储，留空表示不修改
-          </el-text>
-        </el-form-item>
-
-        <el-form-item label="启用状态" prop="enabled">
-          <el-switch v-model="formData.enabled" />
+        <el-form-item label="显示名称">
+          <el-input :value="formData.displayName" disabled />
         </el-form-item>
 
         <el-divider />
@@ -171,18 +149,18 @@
             >
               <el-input
                 v-model="model.modelId"
-                placeholder="模型代码"
-                style="width: 30%"
+                placeholder="模型ID"
+                style="width: 28%"
               />
               <el-input
                 v-model="model.modelName"
                 placeholder="显示名称"
-                style="width: 30%"
+                style="width: 28%"
               />
               <el-input
                 v-model="model.description"
                 placeholder="描述（可选）"
-                style="width: 30%"
+                style="width: 28%"
               />
               <el-button
                 type="danger"
@@ -212,7 +190,7 @@
             <el-option
               v-for="model in formData.models"
               :key="model.modelId"
-              :label="model.modelId + '(' + model.modelName + ')'"
+              :label="`${model.modelId} (${model.modelName})`"
               :value="model.modelId"
             />
           </el-select>
@@ -226,7 +204,7 @@
           @click="submitForm"
           :loading="submitting"
         >
-          {{ dialogMode === 'create' ? '创建' : '更新' }}
+          保存
         </el-button>
       </template>
     </el-dialog>
@@ -235,23 +213,18 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus';
-import { Plus, Edit, Delete, Refresh } from '@element-plus/icons-vue';
-import { 
-  AIProviderConfig, 
-  ModelConfig,
-  AIProviderConfigRequest
-} from '@/api/backend-api';
+import { ElMessage, FormInstance, FormRules } from 'element-plus';
+import { Refresh, Lock, Edit, Plus, Delete } from '@element-plus/icons-vue';
+import { AIProviderConfig, AIProviderConfigRequest } from '@/api/backend-api';
 import backendApi from '@/api/backend-api';
 
 // State
 const loading = ref(false);
 const providers = ref<AIProviderConfig[]>([]);
 const dialogVisible = ref(false);
-const dialogMode = ref<'create' | 'edit'>('create');
 const submitting = ref(false);
-const initializingDefaults = ref(false);
 const formRef = ref<FormInstance>();
+const currentEditId = ref<string>('');
 
 // Form data
 const formData = reactive<AIProviderConfigRequest>({
@@ -259,22 +232,13 @@ const formData = reactive<AIProviderConfigRequest>({
   displayName: '',
   description: '',
   enabled: true,
-  apiKey: '',
   baseUrl: '',
   models: [],
   defaultModel: ''
 });
 
-const currentEditId = ref<string>('');
-
 // Form validation rules
 const formRules: FormRules = {
-  provider: [
-    { required: true, message: '请输入提供商代码', trigger: 'blur' }
-  ],
-  displayName: [
-    { required: true, message: '请输入显示名称', trigger: 'blur' }
-  ],
   defaultModel: [
     { required: true, message: '请选择默认模型', trigger: 'change' }
   ]
@@ -307,52 +271,53 @@ const getProviderTagType = (provider: string) => {
   return typeMap[provider.toLowerCase()] || 'info';
 };
 
-const showCreateDialog = () => {
-  dialogMode.value = 'create';
-  resetForm();
-  dialogVisible.value = true;
+const toggleProvider = async (provider: any) => {
+  provider.toggling = true;
+  try {
+    const response = await backendApi.toggleAIProvider(provider.id, provider.enabled);
+    if (response.data.success) {
+      ElMessage.success(response.data.message);
+    }
+  } catch (error: any) {
+    // Revert on error
+    provider.enabled = !provider.enabled;
+    ElMessage.error('操作失败: ' + error.message);
+  } finally {
+    provider.toggling = false;
+  }
 };
 
-const editProvider = (provider: AIProviderConfig) => {
-  dialogMode.value = 'edit';
+const editProviderModels = (provider: AIProviderConfig) => {
   currentEditId.value = provider.id!;
   
-  // Populate form data
+  // Populate form data - only editable fields
   formData.provider = provider.provider;
   formData.displayName = provider.displayName;
   formData.description = provider.description || '';
   formData.enabled = provider.enabled;
-  formData.apiKey = ''; // Don't show existing API key
   formData.baseUrl = provider.baseUrl || '';
-  formData.models = JSON.parse(JSON.stringify(provider.models));
+  formData.models = JSON.parse(JSON.stringify(provider.models)); // Deep copy
   formData.defaultModel = provider.defaultModel;
   
   dialogVisible.value = true;
 };
 
-const resetForm = () => {
-  formData.provider = '';
-  formData.displayName = '';
-  formData.description = '';
-  formData.enabled = true;
-  formData.apiKey = '';
-  formData.baseUrl = '';
-  formData.models = [];
-  formData.defaultModel = '';
-  currentEditId.value = '';
-  formRef.value?.clearValidate();
-};
-
 const addModel = () => {
   formData.models.push({
-    name: '',
-    displayName: '',
+    modelId: '',
+    modelName: '',
     description: ''
   });
 };
 
 const removeModel = (index: number) => {
   formData.models.splice(index, 1);
+  
+  // If removed model was the default, clear default
+  const removedModel = formData.models[index];
+  if (removedModel && removedModel.modelId === formData.defaultModel) {
+    formData.defaultModel = '';
+  }
 };
 
 const submitForm = async () => {
@@ -373,25 +338,11 @@ const submitForm = async () => {
         defaultModel: formData.defaultModel
       };
       
-      // Only include apiKey if it's not empty
-      if (formData.apiKey) {
-        request.apiKey = formData.apiKey;
-      }
-      
-      if (dialogMode.value === 'create') {
-        const response = await backendApi.createAIProvider(request);
-        if (response.data.success) {
-          ElMessage.success('创建成功');
-          dialogVisible.value = false;
-          await loadProviders();
-        }
-      } else {
-        const response = await backendApi.updateAIProvider(currentEditId.value, request);
-        if (response.data.success) {
-          ElMessage.success('更新成功');
-          dialogVisible.value = false;
-          await loadProviders();
-        }
+      const response = await backendApi.updateAIProviderModels(currentEditId.value, request);
+      if (response.data.success) {
+        ElMessage.success('更新模型配置成功');
+        dialogVisible.value = false;
+        await loadProviders();
       }
     } catch (error: any) {
       ElMessage.error(error.response?.data?.message || '操作失败');
@@ -399,73 +350,6 @@ const submitForm = async () => {
       submitting.value = false;
     }
   });
-};
-
-const toggleProvider = async (provider: any) => {
-  provider.toggling = true;
-  try {
-    const response = await backendApi.toggleAIProvider(provider.id, provider.enabled);
-    if (response.data.success) {
-      ElMessage.success(response.data.message);
-    }
-  } catch (error: any) {
-    // Revert on error
-    provider.enabled = !provider.enabled;
-    ElMessage.error('操作失败: ' + error.message);
-  } finally {
-    provider.toggling = false;
-  }
-};
-
-const deleteProvider = async (provider: AIProviderConfig) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除提供商 "${provider.displayName}" 吗？此操作不可恢复。`,
-      '确认删除',
-      {
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    );
-    
-    const response = await backendApi.deleteAIProvider(provider.id!);
-    if (response.data.success) {
-      ElMessage.success('删除成功');
-      await loadProviders();
-    }
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败: ' + error.message);
-    }
-  }
-};
-
-const initializeDefaults = async () => {
-  try {
-    await ElMessageBox.confirm(
-      '这将初始化三个默认的AI提供商配置（DashScope、Ollama、OpenAI）。如果已存在，将不会重复创建。',
-      '确认初始化',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'info'
-      }
-    );
-    
-    initializingDefaults.value = true;
-    const response = await backendApi.initializeDefaultAIProviders();
-    if (response.data.success) {
-      ElMessage.success(response.data.message);
-      await loadProviders();
-    }
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      ElMessage.error('初始化失败: ' + error.message);
-    }
-  } finally {
-    initializingDefaults.value = false;
-  }
 };
 
 // Lifecycle

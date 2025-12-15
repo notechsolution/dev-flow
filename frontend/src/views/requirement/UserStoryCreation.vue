@@ -133,7 +133,8 @@
                 <!-- AI Provider Selector for Clarification -->
                 <AIProviderSelector
                     v-if="!loadingClarification && clarificationQuestions.length === 0"
-                    v-model="selectedClarificationProvider"
+                    v-model:provider="selectedClarificationProvider"
+                    v-model:model="selectedClarificationModel"
                     :disabled="loadingClarification"
                 />
                 
@@ -166,7 +167,8 @@
                         <!-- AI Provider Selector for Regeneration -->
                         <AIProviderSelector
                             v-if="!loadingClarification"
-                            v-model="selectedClarificationProvider"
+                            v-model:provider="selectedClarificationProvider"
+                            v-model:model="selectedClarificationModel"
                             :disabled="loadingClarification"
                         />
                         
@@ -249,7 +251,8 @@
                 <!-- AI Provider Selector for Optimization -->
                 <AIProviderSelector
                     v-if="!loadingOptimization && !optimizationResult.optimizedRequirement"
-                    v-model="selectedOptimizationProvider"
+                    v-model:provider="selectedOptimizationProvider"
+                    v-model:model="selectedOptimizationModel"
                     :disabled="loadingOptimization"
                 />
                 
@@ -282,7 +285,8 @@
                         <!-- AI Provider Selector for Regeneration -->
                         <AIProviderSelector
                             v-if="!loadingOptimization"
-                            v-model="selectedOptimizationProvider"
+                            v-model:provider="selectedOptimizationProvider"
+                            v-model:model="selectedOptimizationModel"
                             :disabled="loadingOptimization"
                         />
                         
@@ -408,9 +412,11 @@ const optimizationTemplateId = ref<string | null>(null)
 const optimizationPromptContent = ref<string>('')
 const userId = ref<string | null >(userStore().getUserId);
 
-// AI Provider state
+// AI Provider and Model state
 const selectedClarificationProvider = ref<string>('')
+const selectedClarificationModel = ref<string>('')
 const selectedOptimizationProvider = ref<string>('')
+const selectedOptimizationModel = ref<string>('')
 
 console.log('User ID:', userId.value)
 console.log('user store:', userStore())
@@ -633,6 +639,7 @@ const generateClarificationQuestions = async () => {
             projectId: userStory.projectId || undefined,
             promptTemplateId: clarificationTemplateId.value || undefined,
             provider: selectedClarificationProvider.value || undefined,
+            model: selectedClarificationModel.value || undefined,
         })
 
         if (response.data.success) {
@@ -711,6 +718,7 @@ const generateOptimization = async () => {
             projectId: userStory.projectId || undefined,
             promptTemplateId: optimizationTemplateId.value || undefined,
             provider: selectedOptimizationProvider.value || undefined,
+            model: selectedOptimizationModel.value || undefined,
         })
 
         if (response.data.success) {

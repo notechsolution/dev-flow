@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.lz</groupId>
         <artifactId>devflow</artifactId>
-        <version>0.2.0</version>
+        <version>$Version</version>
     </parent>
 
     <properties>

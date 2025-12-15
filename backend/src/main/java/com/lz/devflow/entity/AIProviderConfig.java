@@ -9,6 +9,7 @@ import java.util.List;
 /**
  * AI Provider Configuration Entity
  * Stores configuration for AI providers (DashScope, Ollama, OpenAI)
+ * API keys are configured in application.yml and injected at startup
  */
 @Document(collection = "ai_provider_configs")
 public class AIProviderConfig {
@@ -24,9 +25,9 @@ public class AIProviderConfig {
     
     private boolean enabled; // Whether this provider is enabled
     
-    private String apiKey; // Encrypted API key
+    // API key removed - configured in application.yml
     
-    private String baseUrl; // Base URL for API calls
+    private String baseUrl; // Base URL for API calls (read-only from config)
     
     private List<ModelConfig> models; // List of supported models
     
@@ -133,14 +134,6 @@ public class AIProviderConfig {
     
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
-    }
-    
-    public String getApiKey() {
-        return apiKey;
-    }
-    
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
     }
     
     public String getBaseUrl() {

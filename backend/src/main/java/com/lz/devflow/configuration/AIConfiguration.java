@@ -88,6 +88,20 @@ public class AIConfiguration {
         }
         return client;
     }
+    
+    /**
+     * Get ChatModel for specific provider (to be used with model-specific calls)
+     */
+    public ChatClient getChatClientForModel(String provider, String model) {
+        if (model == null || model.trim().isEmpty()) {
+            return getChatClient(provider);
+        }
+        
+        // For now, we'll handle model selection in the service layer
+        // by passing model info in the prompt or options
+        logger.info("Requested ChatClient for provider: {} with model: {}", provider, model);
+        return getChatClient(provider);
+    }
 
     public ChatClient getDefaultChatClient() {
         return this.chatClients.get(defaultProvider);

@@ -22,8 +22,8 @@ spring:
           model: ${OLLAMA_MODEL:llama2}
           temperature: ${OLLAMA_TEMPERATURE:0.2}
     openai:
-      api-key: ${OPENAI_API_KEY}
-      base-url: https://api.openai-hk.com
+      api-key: ${OPENAI_API_KEY:dummy-api-key}
+      base-url: ${OPENAI_BASE_URL:https://api.openai-hk.com}
   mail:
     host: ${MAIL_HOST:smtp.163.com}
     port: ${MAIL_PORT:465}

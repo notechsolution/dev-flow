@@ -1,12 +1,12 @@
 package com.lz.devflow.service;
 
 import com.lz.devflow.dto.AIProviderConfigDTO;
-import com.lz.devflow.entity.AIProviderConfig;
 
 import java.util.List;
 
 /**
- * Service for managing AI Provider configurations
+ * Service for managing AI Provider configurations (Read-Only)
+ * Configurations are loaded from application.yml at startup
  */
 public interface AIProviderConfigService {
     
@@ -31,27 +31,18 @@ public interface AIProviderConfigService {
     AIProviderConfigDTO getProviderByName(String provider);
     
     /**
-     * Create new provider configuration
-     */
-    AIProviderConfigDTO createProvider(AIProviderConfigDTO providerDTO);
-    
-    /**
-     * Update provider configuration
-     */
-    AIProviderConfigDTO updateProvider(String id, AIProviderConfigDTO providerDTO);
-    
-    /**
      * Enable/Disable provider
      */
     AIProviderConfigDTO toggleProvider(String id, boolean enabled);
     
     /**
-     * Delete provider configuration
+     * Update provider models and default model
+     * Only models and defaultModel can be updated
      */
-    void deleteProvider(String id);
+    AIProviderConfigDTO updateProviderModels(String id, AIProviderConfigDTO providerDTO);
     
     /**
-     * Initialize default provider configurations if not exist
+     * Initialize provider configurations from application.yml at startup
      */
-    void initializeDefaultProviders();
+    void initializeProvidersFromConfig();
 }

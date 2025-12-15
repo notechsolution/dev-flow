@@ -106,6 +106,7 @@ export interface UserStoryOptimizationRequest {
     projectContext?: string;
     additionalRequirements?: string;
     provider?: string;  // AI provider to use (dashscope, ollama, openai)
+    model?: string;  // AI model to use (e.g., qwen-turbo, gpt-4)
 }
 
 export interface UserStoryOptimizationResponse {
@@ -121,6 +122,7 @@ export interface TestCaseGenerationRequest {
     optimizedDescription?: string;
     projectContext?: string;
     provider?: string;  // AI provider to use (dashscope, ollama, openai)
+    model?: string;  // AI model to use (e.g., qwen-turbo, gpt-4)
 }
 
 export interface TestCaseGenerationResponse {
@@ -143,6 +145,7 @@ export interface RequirementClarificationRequest {
     projectId?: string;
     promptTemplateId?: string;
     provider?: string;  // AI provider to use (dashscope, ollama, openai)
+    model?: string;  // AI model to use (e.g., qwen-turbo, gpt-4)
 }
 
 export interface RequirementClarificationResponse {
@@ -165,6 +168,7 @@ export interface RequirementOptimizationRequest {
     projectId?: string;
     promptTemplateId?: string;
     provider?: string;  // AI provider to use (dashscope, ollama, openai)
+    model?: string;  // AI model to use (e.g., qwen-turbo, gpt-4)
     clarificationAnswers: QuestionAnswer[];
 }
 
@@ -451,24 +455,14 @@ export default {
 
      // ========== AI Provider Management APIs (OPERATOR only) ==========
     
-    // Get all AI provider configurations
+    // Get all AI provider configurations (Read-Only)
     getAllAIProviders(): Promise<AxiosResponse<AIProviderManagementResponse>> {
         return axiosApi.get('/admin/ai-providers', getHeaders());
     },
 
-    // Get specific AI provider configuration
+    // Get specific AI provider configuration (Read-Only)
     getAIProvider(id: string): Promise<AxiosResponse<AIProviderResponse>> {
         return axiosApi.get(`/admin/ai-providers/${id}`, getHeaders());
-    },
-
-    // Create new AI provider configuration
-    createAIProvider(config: AIProviderConfigRequest): Promise<AxiosResponse<AIProviderResponse>> {
-        return axiosApi.post('/admin/ai-providers', config, getHeaders());
-    },
-
-    // Update AI provider configuration
-    updateAIProvider(id: string, config: AIProviderConfigRequest): Promise<AxiosResponse<AIProviderResponse>> {
-        return axiosApi.put(`/admin/ai-providers/${id}`, config, getHeaders());
     },
 
     // Toggle AI provider enabled/disabled
@@ -476,14 +470,9 @@ export default {
         return axiosApi.patch(`/admin/ai-providers/${id}/toggle`, { enabled }, getHeaders());
     },
 
-    // Delete AI provider configuration
-    deleteAIProvider(id: string): Promise<AxiosResponse<{ success: boolean; message: string }>> {
-        return axiosApi.delete(`/admin/ai-providers/${id}`, getHeaders());
-    },
-
-    // Initialize default AI provider configurations
-    initializeDefaultAIProviders(): Promise<AxiosResponse<{ success: boolean; message: string }>> {
-        return axiosApi.post('/admin/ai-providers/initialize', {}, getHeaders());
+    // Update AI provider models and default model (Only models can be modified)
+    updateAIProviderModels(id: string, config: AIProviderConfigRequest): Promise<AxiosResponse<AIProviderResponse>> {
+        return axiosApi.put(`/admin/ai-providers/${id}/models`, config, getHeaders());
     }
 }
 

@@ -4,22 +4,23 @@ import com.lz.devflow.dto.AIProviderConfigDTO;
 import com.lz.devflow.entity.AIProviderConfig;
 import com.lz.devflow.repository.AIProviderConfigRepository;
 import com.lz.devflow.service.AIProviderConfigService;
-import com.lz.devflow.util.CryptoUtil;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of AI Provider Config Service
+ * Implementation of AI Provider Config Service (Read-Only)
+ * Configurations are loaded from application.yml at startup
  */
 @Service
 public class AIProviderConfigServiceImpl implements AIProviderConfigService {
@@ -29,8 +30,28 @@ public class AIProviderConfigServiceImpl implements AIProviderConfigService {
     @Autowired
     private AIProviderConfigRepository repository;
     
-    @Autowired
-    private CryptoUtil cryptoUtil;
+    // DashScope configuration
+    @Value("${spring.ai.dashscope.chat.options.model:qwen3-max}")
+    private String dashscopeModel;
+    
+    // Ollama configuration
+    @Value("${spring.ai.ollama.base-url:http://localhost:11434}")
+    private String ollamaBaseUrl;
+    
+    @Value("${spring.ai.ollama.chat.options.model:llama2}")
+    private String ollamaModel;
+    
+    // OpenAI configuration
+    @Value("${spring.ai.openai.base-url:https://api.openai.com}")
+    private String openaiBaseUrl;
+    
+    /**
+     * Initialize providers from application.yml at startup
+     */
+    @PostConstruct
+    public void init() {
+        initializeProvidersFromConfig();
+    }
     
     @Override
     public List<AIProviderConfigDTO> getAllProviders() {
@@ -62,68 +83,7 @@ public class AIProviderConfigServiceImpl implements AIProviderConfigService {
         return convertToDTO(provider);
     }
     
-    @Override
-    public AIProviderConfigDTO createProvider(AIProviderConfigDTO providerDTO) {
-        // Check if provider already exists
-        if (repository.existsByProvider(providerDTO.getProvider())) {
-            throw new RuntimeException("Provider already exists: " + providerDTO.getProvider());
-        }
-        
-        AIProviderConfig provider = convertToEntity(providerDTO);
-        provider.setCreatedAt(LocalDateTime.now());
-        provider.setUpdatedAt(LocalDateTime.now());
-        provider.setCreatedBy(getCurrentUserId());
-        provider.setUpdatedBy(getCurrentUserId());
-        
-        // Encrypt API key if provided
-        if (providerDTO.getApiKey() != null && !providerDTO.getApiKey().isEmpty()) {
-            provider.setApiKey(cryptoUtil.encrypt(providerDTO.getApiKey()));
-        }
-        
-        AIProviderConfig saved = repository.save(provider);
-        logger.info("Created AI provider configuration: {}", saved.getProvider());
-        
-        return convertToDTO(saved);
-    }
-    
-    @Override
-    public AIProviderConfigDTO updateProvider(String id, AIProviderConfigDTO providerDTO) {
-        AIProviderConfig existing = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Provider not found: " + id));
-        
-        // Update fields
-        existing.setDisplayName(providerDTO.getDisplayName());
-        existing.setDescription(providerDTO.getDescription());
-        existing.setEnabled(providerDTO.isEnabled());
-        existing.setBaseUrl(providerDTO.getBaseUrl());
-        existing.setDefaultModel(providerDTO.getDefaultModel());
-        existing.setUpdatedAt(LocalDateTime.now());
-        existing.setUpdatedBy(getCurrentUserId());
-        
-        // Update API key if provided and not masked
-        if (providerDTO.getApiKey() != null && 
-            !providerDTO.getApiKey().isEmpty() && 
-            !providerDTO.getApiKey().contains("***")) {
-            existing.setApiKey(cryptoUtil.encrypt(providerDTO.getApiKey()));
-        }
-        
-        // Update models
-        if (providerDTO.getModels() != null) {
-            List<AIProviderConfig.ModelConfig> models = providerDTO.getModels().stream()
-                    .map(dto -> new AIProviderConfig.ModelConfig(
-                            dto.getModelId(),
-                            dto.getModelName(),
-                            dto.getDescription(),
-                            dto.isEnabled()))
-                    .collect(Collectors.toList());
-            existing.setModels(models);
-        }
-        
-        AIProviderConfig saved = repository.save(existing);
-        logger.info("Updated AI provider configuration: {}", saved.getProvider());
-        
-        return convertToDTO(saved);
-    }
+
     
     @Override
     public AIProviderConfigDTO toggleProvider(String id, boolean enabled) {
@@ -141,65 +101,107 @@ public class AIProviderConfigServiceImpl implements AIProviderConfigService {
     }
     
     @Override
-    public void deleteProvider(String id) {
-        if (!repository.existsById(id)) {
-            throw new RuntimeException("Provider not found: " + id);
+    public AIProviderConfigDTO updateProviderModels(String id, AIProviderConfigDTO providerDTO) {
+        AIProviderConfig existing = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Provider not found: " + id));
+        
+        // Only update models and defaultModel
+        if (providerDTO.getModels() != null) {
+            List<AIProviderConfig.ModelConfig> models = providerDTO.getModels().stream()
+                    .map(dto -> new AIProviderConfig.ModelConfig(
+                            dto.getModelId(),
+                            dto.getModelName(),
+                            dto.getDescription(),
+                            dto.isEnabled()))
+                    .collect(Collectors.toList());
+            existing.setModels(models);
         }
         
-        repository.deleteById(id);
-        logger.info("Deleted AI provider configuration: {}", id);
+        if (providerDTO.getDefaultModel() != null) {
+            existing.setDefaultModel(providerDTO.getDefaultModel());
+        }
+        
+        existing.setUpdatedAt(LocalDateTime.now());
+        existing.setUpdatedBy(getCurrentUserId());
+        
+        AIProviderConfig saved = repository.save(existing);
+        logger.info("Updated models for AI provider: {}", saved.getProvider());
+        
+        return convertToDTO(saved);
     }
     
     @Override
-    public void initializeDefaultProviders() {
-        logger.info("Initializing default AI provider configurations...");
+    public void initializeProvidersFromConfig() {
+        logger.info("Initializing AI provider configurations from application.yml...");
         
-        // DashScope
+        // DashScope - Read from application.yml
         if (!repository.existsByProvider("dashscope")) {
             AIProviderConfig dashscope = new AIProviderConfig();
             dashscope.setProvider("dashscope");
             dashscope.setDisplayName("DashScope (百炼)");
             dashscope.setDescription("阿里云通义千问大模型");
             dashscope.setEnabled(true);
-            dashscope.setBaseUrl("https://dashscope.aliyuncs.com/api/v1");
+            dashscope.setBaseUrl("https://dashscope.aliyuncs.com/api/v1");  // Fixed URL from config
             dashscope.setModels(Arrays.asList(
                     new AIProviderConfig.ModelConfig("qwen3-code-plus", "通义千问代码-Plus", "代码生成专用模型", true),
-                    new AIProviderConfig.ModelConfig("qwen3-max", "通义千问-Max", "最强性能模型", true)
+                    new AIProviderConfig.ModelConfig("qwen3-max", "通义千问-Max", "最强性能模型", true),
+                    new AIProviderConfig.ModelConfig("qwen3-plus", "通义千问-Plus", "高性价比模型", true)
             ));
-            dashscope.setDefaultModel("qwen3-max");
+            dashscope.setDefaultModel(dashscopeModel);  // From application.yml
             dashscope.setCreatedAt(LocalDateTime.now());
             dashscope.setUpdatedAt(LocalDateTime.now());
+            dashscope.setCreatedBy("system");
+            dashscope.setUpdatedBy("system");
             repository.save(dashscope);
-            logger.info("Initialized DashScope provider configuration");
+            logger.info("Initialized DashScope provider with base URL from application.yml");
+        } else {
+            // Update existing provider with config values
+            AIProviderConfig existing = repository.findByProvider("dashscope").orElseThrow();
+            existing.setBaseUrl("https://dashscope.aliyuncs.com/api/v1");
+            existing.setDefaultModel(dashscopeModel);
+            existing.setUpdatedAt(LocalDateTime.now());
+            repository.save(existing);
+            logger.info("Updated DashScope provider from application.yml");
         }
         
-        // Ollama
+        // Ollama - Read from application.yml
         if (!repository.existsByProvider("ollama")) {
             AIProviderConfig ollama = new AIProviderConfig();
             ollama.setProvider("ollama");
             ollama.setDisplayName("Ollama");
             ollama.setDescription("本地运行的开源大模型");
             ollama.setEnabled(true);
-            ollama.setBaseUrl("http://localhost:11434");
+            ollama.setBaseUrl(ollamaBaseUrl);  // From application.yml
             ollama.setModels(Arrays.asList(
                     new AIProviderConfig.ModelConfig("qwen3:8b", "Qwen 3 8B", "阿里云百炼大模型", true),
-                    new AIProviderConfig.ModelConfig("qwen3:32b", "Qwen 3 32B", "高性能开源模型", true)
+                    new AIProviderConfig.ModelConfig("qwen3:32b", "Qwen 3 32B", "高性能开源模型", true),
+                    new AIProviderConfig.ModelConfig("llama2", "Llama 2", "Meta开源模型", true)
             ));
-            ollama.setDefaultModel("qwen3:8b");
+            ollama.setDefaultModel(ollamaModel);  // From application.yml
             ollama.setCreatedAt(LocalDateTime.now());
             ollama.setUpdatedAt(LocalDateTime.now());
+            ollama.setCreatedBy("system");
+            ollama.setUpdatedBy("system");
             repository.save(ollama);
-            logger.info("Initialized Ollama provider configuration");
+            logger.info("Initialized Ollama provider with base URL: {}", ollamaBaseUrl);
+        } else {
+            // Update existing provider with config values
+            AIProviderConfig existing = repository.findByProvider("ollama").orElseThrow();
+            existing.setBaseUrl(ollamaBaseUrl);
+            existing.setDefaultModel(ollamaModel);
+            existing.setUpdatedAt(LocalDateTime.now());
+            repository.save(existing);
+            logger.info("Updated Ollama provider from application.yml");
         }
         
-        // OpenAI
+        // OpenAI - Read from application.yml
         if (!repository.existsByProvider("openai")) {
             AIProviderConfig openai = new AIProviderConfig();
             openai.setProvider("openai");
             openai.setDisplayName("OpenAI");
             openai.setDescription("OpenAI GPT模型");
             openai.setEnabled(true);
-            openai.setBaseUrl("https://api.openai.com/v1");
+            openai.setBaseUrl(openaiBaseUrl);  // From application.yml
             openai.setModels(Arrays.asList(
                     new AIProviderConfig.ModelConfig("gpt-3.5-turbo", "GPT-3.5 Turbo", "快速且经济的模型", true),
                     new AIProviderConfig.ModelConfig("gpt-4", "GPT-4", "最强性能模型", true),
@@ -208,15 +210,24 @@ public class AIProviderConfigServiceImpl implements AIProviderConfigService {
             openai.setDefaultModel("gpt-3.5-turbo");
             openai.setCreatedAt(LocalDateTime.now());
             openai.setUpdatedAt(LocalDateTime.now());
+            openai.setCreatedBy("system");
+            openai.setUpdatedBy("system");
             repository.save(openai);
-            logger.info("Initialized OpenAI provider configuration");
+            logger.info("Initialized OpenAI provider with base URL: {}", openaiBaseUrl);
+        } else {
+            // Update existing provider with config values
+            AIProviderConfig existing = repository.findByProvider("openai").orElseThrow();
+            existing.setBaseUrl(openaiBaseUrl);
+            existing.setUpdatedAt(LocalDateTime.now());
+            repository.save(existing);
+            logger.info("Updated OpenAI provider from application.yml");
         }
         
-        logger.info("Default AI provider configurations initialized");
+        logger.info("AI provider configurations initialized from application.yml");
     }
     
     /**
-     * Convert entity to DTO (mask API key)
+     * Convert entity to DTO (no API key exposed)
      */
     private AIProviderConfigDTO convertToDTO(AIProviderConfig entity) {
         AIProviderConfigDTO dto = new AIProviderConfigDTO();
@@ -228,10 +239,8 @@ public class AIProviderConfigServiceImpl implements AIProviderConfigService {
         dto.setBaseUrl(entity.getBaseUrl());
         dto.setDefaultModel(entity.getDefaultModel());
         
-        // Mask API key
-        if (entity.getApiKey() != null && !entity.getApiKey().isEmpty()) {
-            dto.setApiKey("***" + entity.getApiKey().substring(Math.max(0, entity.getApiKey().length() - 4)));
-        }
+        // Don't expose API key - it's configured in application.yml
+        // API key field has been removed from DTO
         
         // Convert models
         if (entity.getModels() != null) {
@@ -246,33 +255,6 @@ public class AIProviderConfigServiceImpl implements AIProviderConfigService {
         }
         
         return dto;
-    }
-    
-    /**
-     * Convert DTO to entity
-     */
-    private AIProviderConfig convertToEntity(AIProviderConfigDTO dto) {
-        AIProviderConfig entity = new AIProviderConfig();
-        entity.setProvider(dto.getProvider());
-        entity.setDisplayName(dto.getDisplayName());
-        entity.setDescription(dto.getDescription());
-        entity.setEnabled(dto.isEnabled());
-        entity.setBaseUrl(dto.getBaseUrl());
-        entity.setDefaultModel(dto.getDefaultModel());
-        
-        // Convert models
-        if (dto.getModels() != null) {
-            List<AIProviderConfig.ModelConfig> models = dto.getModels().stream()
-                    .map(modelDTO -> new AIProviderConfig.ModelConfig(
-                            modelDTO.getModelId(),
-                            modelDTO.getModelName(),
-                            modelDTO.getDescription(),
-                            modelDTO.isEnabled()))
-                    .collect(Collectors.toList());
-            entity.setModels(models);
-        }
-        
-        return entity;
     }
     
     /**

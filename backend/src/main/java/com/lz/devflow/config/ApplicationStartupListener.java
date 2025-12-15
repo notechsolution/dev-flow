@@ -27,7 +27,7 @@ public class ApplicationStartupListener {
         logger.info("Application is ready, initializing default configurations...");
         
         try {
-            providerConfigService.initializeDefaultProviders();
+            providerConfigService.initializeProvidersFromConfig();
             logger.info("Default AI provider configurations initialized successfully");
         } catch (Exception e) {
             logger.warn("Failed to initialize default AI provider configurations: {}", e.getMessage());
